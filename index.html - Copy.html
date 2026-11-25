@@ -1,0 +1,3745 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="tool">
+  <meta name="design-style" content="aurora">
+  <title>AetherSpace — 3D Spatial Audio Engine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+
+      /* 1. Aurora style tokens */
+      --background: #0c1214;
+      --surface-container-low: #111a1e;
+      --surface-container: #152024;
+      --surface-container-high: #1c2a30;
+
+      --on-surface: #edf3f5;
+      --on-surface-variant: #94a8b0;
+
+      --outline: #38515c;
+      --outline-variant: #213138;
+
+      --primary: #63c7d6;
+      --on-primary: #081214;
+      --primary-container: #163840;
+      --on-primary-container: #c7f0f7;
+      --secondary: #5d7882;
+      --tertiary: #87d69b;
+      --error: #f27474;
+      --on-error: #1a0606;
+
+      --data-1: #63c7d6;
+      --data-2: #87d69b;
+      --data-3: #e8b954;
+      --data-4: #f08c70;
+      --data-context: #415861;
+
+      --font-headline: 'Instrument Sans', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+
+      --rounded: 0.5rem;
+      --rounded-lg: 0.75rem;
+      --rounded-full: 9999px;
+
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-strong: 1px solid var(--outline);
+      --panel-gradient: linear-gradient(180deg, #162226 0%, #111a1e 100%);
+      --heading-tracking: -0.025em;
+      --label-tracking: 0.06em;
+      --sage-tint: color-mix(in srgb, var(--tertiary) 13%, transparent);
+      --cyan-tint: color-mix(in srgb, var(--primary) 13%, transparent);
+
+      /* 2. AetherSpace domain tokens */
+      --gold: #e8b954;
+      --gold-tint: color-mix(in srgb, #e8b954 14%, transparent);
+      --theme-sinharaja: #87d69b;
+      --theme-ancient: #e8b954;
+      --theme-galle: #f08c70;
+      --theme-religion: #f3b562;
+      --theme-ocean: #63c7d6;
+      --theme-custom: #9ea8f5;
+      --backdrop-scrim: rgba(8, 12, 14, 0.78);
+      --radar-glow: 0 0 24px color-mix(in srgb, var(--primary) 35%, transparent);
+      --gold-glow: 0 0 28px color-mix(in srgb, var(--gold) 28%, transparent);
+
+      /* 3. Shared tokens */
+      --positive: #87d69b;
+      --warning: #e8b954;
+      --focus: #63c7d6;
+
+      --display-size: clamp(2rem, 1.5rem + 2.2vw, 3.15rem);
+      --headline-size: clamp(1.35rem, 1.15rem + 0.7vw, 1.75rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+    button, input, select, textarea { font-family: inherit; }
+
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    /* Layout shell */
+    .app-shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-2xl);
+    }
+    .app-shell * { min-width: 0; }
+
+    /* Hero header with 3D acoustic canvas */
+    .hero-header {
+      position: relative;
+      border-radius: var(--rounded-lg);
+      border: var(--hairline);
+      background: var(--panel-gradient);
+      overflow: hidden;
+      min-height: 360px;
+      display: grid;
+      align-items: center;
+      padding: var(--space-xl) var(--space-xl);
+    }
+    .hero-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .hero-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 22% 50%, color-mix(in srgb, var(--background) 55%, transparent) 0%, color-mix(in srgb, var(--background) 88%, transparent) 78%);
+      pointer-events: none;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+      gap: var(--space-xl);
+      align-items: center;
+    }
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .logo-360-wrap {
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+      border-radius: var(--rounded-full);
+      background: radial-gradient(circle, var(--gold-tint) 0%, transparent 72%);
+      border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+      display: grid;
+      place-items: center;
+      box-shadow: var(--gold-glow);
+    }
+    .hero-title {
+      font-family: var(--font-headline);
+      font-size: var(--display-size);
+      font-weight: 600;
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.06;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .hero-subtitle-tag {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: var(--space-xs);
+    }
+    .hero-lede {
+      color: var(--on-surface-variant);
+      max-width: 62ch;
+      margin: 0 0 var(--space-lg) 0;
+      font-size: var(--subhead-size);
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      align-items: center;
+    }
+    .headphone-note {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--primary);
+      background: var(--cyan-tint);
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+    }
+    .hero-telemetry-card {
+      background: color-mix(in srgb, var(--background) 80%, transparent);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+      backdrop-filter: blur(8px);
+    }
+    .hero-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+    .stat-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      display: block;
+    }
+    .stat-value {
+      font-family: var(--font-headline);
+      font-size: 1.5rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-xs);
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      border: var(--hairline-strong);
+      background: var(--surface-container);
+      color: var(--on-surface);
+      transition: background-color var(--dur-short) var(--ease-out),
+                  border-color var(--dur-short) var(--ease-out),
+                  transform var(--dur-micro) var(--ease-out),
+                  box-shadow var(--dur-short) var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--surface-container-high);
+      border-color: var(--primary);
+    }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.48; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--primary) 88%, var(--on-surface));
+      border-color: var(--primary);
+    }
+    .btn-gold {
+      background: var(--gold-tint);
+      color: var(--gold);
+      border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+    }
+    .btn-gold:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--gold) 24%, transparent);
+      border-color: var(--gold);
+    }
+    .btn-danger {
+      background: color-mix(in srgb, var(--error) 14%, transparent);
+      color: var(--error);
+      border-color: color-mix(in srgb, var(--error) 45%, transparent);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--error) 24%, transparent);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: 0 var(--space-sm);
+      font-size: 0.8125rem;
+      font-family: var(--font-label);
+    }
+
+    /* Section headings */
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    .section-title {
+      font-family: var(--font-headline);
+      font-size: var(--headline-size);
+      font-weight: 600;
+      letter-spacing: var(--heading-tracking);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .section-desc {
+      margin: var(--space-xs) 0 0 0;
+      color: var(--on-surface-variant);
+      max-width: 65ch;
+    }
+
+    /* 6 Regional & Studio Theme Cards */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+    .theme-card-wrap {
+      container-type: inline-size;
+    }
+    .theme-card {
+      position: relative;
+      height: 100%;
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: var(--space-md);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color var(--dur-short) var(--ease-out),
+                  transform var(--dur-short) var(--ease-out),
+                  box-shadow var(--dur-short) var(--ease-out);
+      overflow: hidden;
+    }
+    .theme-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--primary));
+      opacity: 0.85;
+    }
+    .theme-card:hover {
+      border-color: var(--card-accent, var(--primary));
+      transform: translateY(-2px);
+    }
+    .theme-card.is-active {
+      border-color: var(--card-accent, var(--primary));
+      box-shadow: 0 0 0 1px var(--card-accent, var(--primary)), 0 12px 28px color-mix(in srgb, var(--card-accent, var(--primary)) 14%, transparent);
+    }
+    .theme-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+    }
+    .theme-emblem {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--rounded);
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--card-accent, var(--primary)) 14%, var(--background));
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--primary)) 35%, transparent);
+      color: var(--card-accent, var(--primary));
+      flex-shrink: 0;
+    }
+    .theme-badge {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--card-accent, var(--primary));
+      background: color-mix(in srgb, var(--card-accent, var(--primary)) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--primary)) 30%, transparent);
+      padding: 2px var(--space-sm);
+      border-radius: var(--rounded);
+    }
+    .theme-card h3 {
+      font-family: var(--font-headline);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0 0 var(--space-xs) 0;
+      color: var(--on-surface);
+    }
+    .theme-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--on-surface-variant);
+      line-height: 1.5;
+    }
+    .theme-card-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: var(--space-sm);
+      border-top: var(--hairline);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    /* Stage Workspace */
+    .workspace-panel {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-lg);
+    }
+    .stage-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      padding-bottom: var(--space-md);
+      border-bottom: var(--hairline);
+    }
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-sm);
+    }
+    .field-stack {
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .field-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .input-ctrl, .select-ctrl {
+      min-height: 44px;
+      background: var(--background);
+      color: var(--on-surface);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      padding: 0 var(--space-md);
+      font-size: 0.9375rem;
+    }
+    .select-ctrl { padding-right: var(--space-xl); }
+    .segmented-toggle {
+      display: inline-flex;
+      background: var(--background);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      padding: 3px;
+      gap: 3px;
+    }
+    .seg-btn {
+      min-height: 36px;
+      padding: 0 var(--space-sm);
+      border: 0;
+      border-radius: calc(var(--rounded) - 2px);
+      background: transparent;
+      color: var(--on-surface-variant);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .seg-btn.is-active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    /* Dynamic Subtitle & Story Guide Bar */
+    .story-guide-bar {
+      background: var(--background);
+      border: var(--hairline);
+      border-left: 3px solid var(--primary);
+      border-radius: var(--rounded);
+      padding: var(--space-md) var(--space-lg);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-md);
+      align-items: center;
+    }
+    .story-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xs);
+    }
+    .story-node-badge {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--primary);
+      background: var(--cyan-tint);
+      padding: 2px var(--space-sm);
+      border-radius: var(--rounded);
+    }
+    .story-telemetry {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+    .story-text {
+      margin: 0;
+      color: var(--on-surface);
+      font-size: 0.9625rem;
+      line-height: 1.55;
+      max-width: 72ch;
+    }
+
+    /* 2-Column Stage + Inspector */
+    .stage-main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(310px, 0.95fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    /* Spatial 2D-to-3D Stage Canvas */
+    .spatial-stage {
+      position: relative;
+      min-height: 510px;
+      background: var(--background);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded-lg);
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+    .stage-bg-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.42;
+    }
+    .stage-field-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .stage-hud-corners {
+      position: absolute;
+      inset: var(--space-sm);
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      z-index: 3;
+    }
+    .stage-hud-pill {
+      background: color-mix(in srgb, var(--surface-container) 82%, transparent);
+      border: var(--hairline);
+      padding: 3px var(--space-sm);
+      border-radius: var(--rounded);
+      backdrop-filter: blur(4px);
+    }
+    .stage-empty-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: var(--space-xl);
+      z-index: 4;
+      pointer-events: none;
+    }
+    .stage-empty-box {
+      pointer-events: auto;
+      background: color-mix(in srgb, var(--surface-container) 92%, transparent);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      max-width: 420px;
+      display: grid;
+      gap: var(--space-md);
+      justify-items: center;
+    }
+
+    /* Central YOU / Explorer Node */
+    .listener-node {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 72px;
+      height: 72px;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+    .radar-ring {
+      position: absolute;
+      inset: -14px;
+      border-radius: var(--rounded-full);
+      border: 1.5px solid color-mix(in srgb, var(--primary) 65%, transparent);
+      box-shadow: var(--radar-glow);
+      animation: radarPulse 2.8s var(--ease-out) infinite;
+    }
+    .radar-ring.ring-2 {
+      inset: -34px;
+      border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+      animation-delay: 1.1s;
+    }
+    @keyframes radarPulse {
+      0% { transform: scale(0.75); opacity: 0.9; }
+      100% { transform: scale(1.65); opacity: 0; }
+    }
+    .listener-core {
+      width: 58px;
+      height: 58px;
+      border-radius: var(--rounded-full);
+      background: radial-gradient(circle at 35% 30%, var(--primary-container), var(--background));
+      border: 2px solid var(--primary);
+      box-shadow: var(--radar-glow);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--on-primary-container);
+      font-family: var(--font-label);
+      font-size: 0.65rem;
+      line-height: 1.15;
+      letter-spacing: 0.04em;
+    }
+    .listener-core strong {
+      color: var(--primary);
+      font-size: 0.72rem;
+      display: block;
+    }
+
+    /* Draggable Sound Nodes */
+    .sound-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      z-index: 6;
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      cursor: grab;
+      padding: 4px;
+      border-radius: var(--rounded);
+      transition: transform var(--dur-micro) var(--ease-out);
+    }
+    .sound-node:active { cursor: grabbing; }
+    .sound-node:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 4px;
+    }
+    .node-medallion {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--rounded-full);
+      background: var(--surface-container-high);
+      border: 2.5px solid var(--node-color, var(--primary));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--node-color, var(--primary)) 28%, transparent);
+      display: grid;
+      place-items: center;
+      color: var(--node-color, var(--primary));
+      overflow: hidden;
+      transition: box-shadow var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+    .sound-node.is-selected .node-medallion {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--primary)) 35%, transparent), 0 0 24px color-mix(in srgb, var(--node-color, var(--primary)) 45%, transparent);
+      transform: scale(1.06);
+    }
+    .sound-node.is-playing .node-medallion::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: var(--rounded-full);
+      border: 1.5px solid var(--node-color, var(--primary));
+      opacity: 0.65;
+      animation: nodeBeat 1.8s var(--ease-out) infinite;
+      pointer-events: none;
+    }
+    @keyframes nodeBeat {
+      0% { transform: scale(0.95); opacity: 0.75; }
+      100% { transform: scale(1.25); opacity: 0; }
+    }
+    .node-custom-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: var(--rounded-full);
+      display: block;
+    }
+    .node-label-pill {
+      background: color-mix(in srgb, var(--background) 90%, transparent);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: 2px 6px;
+      font-family: var(--font-headline);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--on-surface);
+      white-space: nowrap;
+      max-width: 145px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .node-telemetry-pill {
+      font-family: var(--font-label);
+      font-size: 0.6875rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface-variant);
+      background: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: 1px 6px;
+      white-space: nowrap;
+    }
+    .sound-node.is-playing .node-telemetry-pill {
+      color: var(--tertiary);
+      border-color: color-mix(in srgb, var(--tertiary) 35%, transparent);
+    }
+
+    /* Right Inspector & Mixer Rail */
+    .inspector-rail {
+      display: grid;
+      gap: var(--space-md);
+    }
+    .rail-card {
+      background: var(--surface-container);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .rail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .rail-title {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      margin: 0;
+    }
+    .routing-badge {
+      font-family: var(--font-label);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: var(--rounded);
+      background: var(--sage-tint);
+      color: var(--tertiary);
+      border: 1px solid color-mix(in srgb, var(--tertiary) 35%, transparent);
+    }
+    .slider-row {
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .lr-meter {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs);
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm);
+    }
+    .meter-bar-track {
+      height: 6px;
+      background: var(--surface-container-high);
+      border-radius: var(--rounded-full);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .meter-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: var(--rounded-full);
+      transition: width var(--dur-micro) linear;
+    }
+    .node-list {
+      display: grid;
+      gap: var(--space-xs);
+      max-height: 230px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .node-list-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-xs) var(--space-sm);
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      cursor: pointer;
+    }
+    .node-list-item.is-selected {
+      border-color: var(--primary);
+      background: var(--surface-container-low);
+    }
+    .node-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--rounded-full);
+    }
+    .node-list-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .node-list-sub {
+      font-family: var(--font-label);
+      font-size: 0.7rem;
+      color: var(--on-surface-variant);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Recorder Box */
+    .recorder-well {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm);
+      display: grid;
+      gap: var(--space-sm);
+    }
+    .rec-status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+    }
+    .rec-time {
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface);
+    }
+    .rec-badge {
+      color: var(--on-surface-variant);
+    }
+    .rec-badge.is-recording {
+      color: var(--error);
+    }
+    .rec-audio-preview {
+      width: 100%;
+      height: 36px;
+    }
+
+    /* Creator Mode Modal / Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--backdrop-scrim);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: var(--space-md);
+      overflow-y: auto;
+    }
+    .modal-backdrop.is-open { display: grid; }
+    .modal-dialog {
+      width: min(760px, 100%);
+      max-height: 92vh;
+      overflow-y: auto;
+      background: var(--panel-gradient);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-lg);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: var(--hairline);
+    }
+    .creator-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+    .creator-full { grid-column: 1 / -1; }
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .color-swatch-input {
+      width: 48px;
+      height: 44px;
+      padding: 2px;
+      border-radius: var(--rounded);
+      border: var(--hairline-strong);
+      background: var(--background);
+      cursor: pointer;
+    }
+    .icon-picker-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      align-items: center;
+    }
+    .icon-choice-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: var(--rounded-full);
+      border: var(--hairline-strong);
+      background: var(--background);
+      color: var(--on-surface-variant);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      overflow: hidden;
+      padding: 0;
+      transition: border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .icon-choice-btn.is-selected {
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      background: var(--primary-container);
+    }
+    .paste-zone {
+      background: var(--background);
+      border: 1px dashed var(--outline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+    }
+    .paste-zone:focus-visible { border-color: var(--primary); }
+    .paste-preview-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--rounded-full);
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+
+    /* Research & Architecture Section */
+    .architecture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+    .arch-card {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-sm);
+      align-content: start;
+    }
+    .arch-card h3 {
+      font-family: var(--font-headline);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .arch-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--on-surface-variant);
+      line-height: 1.55;
+    }
+    .signal-flow-well {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      overflow-x: auto;
+    }
+    .sources-footer {
+      border-top: var(--hairline);
+      padding-top: var(--space-lg);
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .inline-status {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--tertiary);
+      min-height: 1.2em;
+    }
+    .inline-status.is-error { color: var(--error); }
+
+    @container (max-width: 340px) {
+      .theme-card-top { flex-direction: column; }
+    }
+
+    @media (max-width: 980px) {
+      .hero-content { grid-template-columns: 1fr; }
+      .stage-main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .app-shell { padding: var(--space-sm); gap: var(--space-xl); }
+      .hero-header { padding: var(--space-lg) var(--space-md); }
+      .creator-grid { grid-template-columns: 1fr; }
+      .story-guide-bar { grid-template-columns: 1fr; }
+      .spatial-stage { min-height: 400px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 1. HERO HEADER -->
+    <header class="hero-header">
+      <canvas id="hero-3d-canvas" class="hero-canvas" aria-hidden="true"></canvas>
+      <div class="hero-vignette" aria-hidden="true"></div>
+      <div class="hero-content">
+        <div>
+          <div class="brand-lockup">
+            <div class="logo-360-wrap" aria-hidden="true">
+              <!-- Golden 360-degree headphone logo icon -->
+              <svg width="46" height="46" viewBox="0 0 64 64" fill="none">
+                <ellipse cx="32" cy="34" rx="27" ry="11" transform="rotate(-14 32 34)" stroke="#e8b954" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.85"/>
+                <ellipse cx="32" cy="34" rx="27" ry="11" transform="rotate(14 32 34)" stroke="#63c7d6" stroke-width="1.4" opacity="0.7"/>
+                <path d="M16 33V29C16 20.163 23.163 13 32 13C40.837 13 48 20.163 48 29V33" stroke="#e8b954" stroke-width="3" stroke-linecap="round"/>
+                <rect x="11" y="31" width="8" height="15" rx="4" fill="#e8b954"/>
+                <rect x="45" y="31" width="8" height="15" rx="4" fill="#e8b954"/>
+                <path d="M26 36C28 33 30 33 32 36C34 39 36 39 38 36" stroke="#edf3f5" stroke-width="2" stroke-linecap="round"/>
+                <text x="32" y="57" text-anchor="middle" fill="#e8b954" font-family="Geist Mono, monospace" font-size="8" font-weight="600">360°</text>
+              </svg>
+            </div>
+            <div>
+              <h1 class="hero-title">AetherSpace</h1>
+              <div class="hero-subtitle-tag">3D Spatial Audio Engine &amp; Cultural Soundstage</div>
+            </div>
+          </div>
+          <p class="hero-lede">
+            Experience headset-free 3D audio spatialisation directly in your browser. Position Sri Lankan rainforest wildlife, ancient stupas, colonial fort ramparts, sacred chants, or your own uploaded tracks around a live HRTF acoustic listener.
+          </p>
+          <div class="hero-actions">
+            <button type="button" class="btn btn-primary" onclick="scrollToStage()">
+              <i data-lucide="radar" width="18" height="18" aria-hidden="true"></i>
+              Enter 3D Stage
+            </button>
+            <button type="button" class="btn btn-gold" onclick="openCreatorModal()">
+              <i data-lucide="plus-circle" width="18" height="18" aria-hidden="true"></i>
+              Creator Mode
+            </button>
+            <span class="headphone-note">
+              <i data-lucide="headphones" width="15" height="15" aria-hidden="true"></i>
+              Put on headphones for 3D HRTF cues
+            </span>
+          </div>
+        </div>
+
+        <aside class="hero-telemetry-card" aria-label="Engine Capabilities">
+          <div class="stat-label">Web Audio Spatial Pipeline</div>
+          <div class="hero-stat-grid">
+            <div>
+              <span class="stat-label">Panning Model</span>
+              <span class="stat-value">3D HRTF</span>
+            </div>
+            <div>
+              <span class="stat-label">Soundscapes</span>
+              <span class="stat-value" id="hero-stage-count">6 Stages</span>
+            </div>
+            <div>
+              <span class="stat-label">Audio Routing</span>
+              <span class="stat-value">Direct WAV</span>
+            </div>
+            <div>
+              <span class="stat-label">Active Sources</span>
+              <span class="stat-value" id="hero-active-count">0 Playing</span>
+            </div>
+          </div>
+          <div class="stat-label" style="color: var(--tertiary);">
+            Supports .MP3 / .WAV direct PannerNode routing &amp; live stereo WAV export
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <!-- 2. 6 INTERACTIVE THEME CARDS -->
+    <section aria-labelledby="themes-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="themes-heading" class="section-title">Regional &amp; Studio 3D Soundscapes</h2>
+          <p class="section-desc">Choose an environment to populate the 3D spatial stage with pre-loaded sound nodes, or open a blank custom studio.</p>
+        </div>
+      </div>
+
+      <div class="themes-grid" id="themes-grid">
+        <!-- Populated dynamically from STAGES data so state stays synced -->
+      </div>
+    </section>
+
+    <!-- 3. 3D SPATIAL AUDIO STAGE & MIXER WORKSPACE -->
+    <section id="workspace-section" aria-labelledby="stage-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="stage-heading" class="section-title">Interactive 3D Spatial Audio Stage</h2>
+          <p class="section-desc">Drag any sound icon around the central Explorer node or use arrow keys to alter its azimuth (L% | R%), depth, and distance attenuation in real time.</p>
+        </div>
+      </div>
+
+      <div class="workspace-panel">
+        <!-- Stage Control Bar -->
+        <div class="stage-toolbar">
+          <div class="toolbar-group">
+            <div class="field-stack">
+              <label for="stage-switcher-select" class="field-label">Active Soundstage</label>
+              <select id="stage-switcher-select" class="select-ctrl" onchange="selectStage(this.value)">
+                <option value="sinharaja">1. Sinharaja Rainforest</option>
+                <option value="ancient">2. Ancient Historical Cities</option>
+                <option value="galle">3. Galle Dutch Fort</option>
+                <option value="religion">4. Religion Background</option>
+                <option value="ocean">5. Ocean &amp; Beach Vibe</option>
+                <option value="custom">6. Custom Open Stage</option>
+              </select>
+            </div>
+
+            <div class="field-stack">
+              <span class="field-label">Rendering Mode (Compare)</span>
+              <div class="segmented-toggle" role="group" aria-label="Audio Rendering Mode">
+                <button type="button" id="mode-btn-hrtf" class="seg-btn is-active" onclick="setSpatialMode('HRTF')">3D Spatial (HRTF)</button>
+                <button type="button" id="mode-btn-stereo" class="seg-btn" onclick="setSpatialMode('stereo')">Stereo (2-Ch)</button>
+              </div>
+            </div>
+
+            <div class="field-stack" style="min-width: 135px;">
+              <label for="master-vol-slider" class="field-label">Master Gain (<span id="master-vol-label">80%</span>)</label>
+              <input type="range" id="master-vol-slider" min="0" max="100" value="80" oninput="setMasterVolume(this.value)">
+            </div>
+          </div>
+
+          <div class="toolbar-group">
+            <button type="button" id="btn-play-all" class="btn btn-primary" onclick="togglePlayAll()">
+              <i data-lucide="play" width="16" height="16" aria-hidden="true"></i>
+              Play All Nodes
+            </button>
+            <button type="button" class="btn btn-gold" onclick="openCreatorModal()">
+              <i data-lucide="plus" width="16" height="16" aria-hidden="true"></i>
+              Creator Mode
+            </button>
+            <button type="button" id="btn-record-toggle" class="btn" onclick="toggleRecording()">
+              <i data-lucide="circle-dot" width="16" height="16" aria-hidden="true"></i>
+              Record 3D Mix
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Subtitle & Story Guide Bar -->
+        <div class="story-guide-bar" aria-live="polite">
+          <div>
+            <div class="story-meta">
+              <span class="story-node-badge" id="story-badge">Closest Node • Story Guide</span>
+              <span class="story-telemetry" id="story-telemetry">Waiting for active stage…</span>
+            </div>
+            <p class="story-text" id="story-subtitle-text">Select or drag any sound node near the central Explorer to hear its spatial story.</p>
+          </div>
+          <div>
+            <button type="button" class="btn btn-sm" onclick="triggerNodeFileAttachForClosest()">
+              <i data-lucide="upload" width="14" height="14" aria-hidden="true"></i>
+              Attach .MP3 / .WAV
+            </button>
+          </div>
+        </div>
+
+        <!-- 2-Column Stage + Inspector -->
+        <div class="stage-main-grid">
+          <!-- Left: 2D-to-3D Stage Canvas -->
+          <div id="spatial-stage" class="spatial-stage" aria-label="Interactive 3D Spatial Sound Canvas">
+            <svg id="stage-bg-svg" class="stage-bg-svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+            <canvas id="stage-field-canvas" class="stage-field-canvas" aria-hidden="true"></canvas>
+
+            <div class="stage-hud-corners">
+              <span class="stage-hud-pill" id="hud-stage-coord">AZIMUTH: L/R • DEPTH: FRONT/REAR</span>
+              <span class="stage-hud-pill" id="hud-mode-pill">HRTF BINAURAL 3D</span>
+            </div>
+
+            <!-- Central Listener Node -->
+            <div class="listener-node" id="listener-node" aria-hidden="true">
+              <div class="radar-ring"></div>
+              <div class="radar-ring ring-2"></div>
+              <div class="listener-core">
+                <strong>YOU</strong>
+                Explorer
+              </div>
+            </div>
+
+            <!-- Empty state for Custom Open Stage -->
+            <div class="stage-empty-overlay" id="stage-empty-overlay" style="display: none;">
+              <div class="stage-empty-box">
+                <i data-lucide="sparkles" width="28" height="28" style="color: var(--theme-custom);" aria-hidden="true"></i>
+                <h3 style="margin: 0; font-family: var(--font-headline);">Your Custom Open Stage</h3>
+                <p style="margin: 0; color: var(--on-surface-variant); font-size: 0.9rem;">
+                  This 3D acoustic studio starts blank. Add procedural nodes with custom text formulas, upload .mp3/.wav tracks, or paste circular icons.
+                </p>
+                <button type="button" class="btn btn-primary" onclick="openCreatorModal('custom')">
+                  <i data-lucide="plus" width="16" height="16" aria-hidden="true"></i>
+                  Add Your First 3D Node
+                </button>
+              </div>
+            </div>
+
+            <!-- Sound nodes injected dynamically -->
+            <div id="stage-nodes-layer"></div>
+          </div>
+
+          <!-- Right: Inspector, Node Mixer & 3D Recorder -->
+          <aside class="inspector-rail" aria-label="Node Inspector and 3D Audio Recorder">
+            <!-- Selected Node Controls -->
+            <div class="rail-card" id="selected-node-card">
+              <div class="rail-head">
+                <h3 class="rail-title">Selected Sound Node</h3>
+                <span class="routing-badge" id="selected-routing-badge">Procedural → HRTF</span>
+              </div>
+
+              <div id="selected-node-empty" style="color: var(--on-surface-variant); font-size: 0.9rem; display: none;">
+                No node selected. Open Creator Mode to add a sound source to this stage.
+              </div>
+
+              <div id="selected-node-controls" style="display: grid; gap: var(--space-md);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm);">
+                  <div>
+                    <strong id="sel-node-name" style="font-family: var(--font-headline); font-size: 1.08rem;">—</strong>
+                    <div id="sel-node-coords" style="font-family: var(--font-label); font-size: var(--label-size); color: var(--on-surface-variant);">L 50% | R 50% • 0 px</div>
+                  </div>
+                  <div style="display: flex; gap: var(--space-xs);">
+                    <button type="button" id="sel-play-btn" class="btn btn-sm btn-primary" onclick="toggleSelectedPlay()">Play</button>
+                    <button type="button" id="sel-del-btn" class="btn btn-sm btn-danger" onclick="deleteSelectedNode()" title="Remove node">Remove</button>
+                  </div>
+                </div>
+
+                <!-- Live L/R Balance Meter -->
+                <div class="lr-meter" aria-label="Real-time Left Right Channel Balance">
+                  <div>
+                    <div class="slider-head"><span>LEFT CH</span><span id="meter-left-pct">50%</span></div>
+                    <div class="meter-bar-track"><div class="meter-bar-fill" id="meter-left-bar" style="width: 50%;"></div></div>
+                  </div>
+                  <div>
+                    <div class="slider-head"><span>RIGHT CH</span><span id="meter-right-pct">50%</span></div>
+                    <div class="meter-bar-track"><div class="meter-bar-fill" id="meter-right-bar" style="width: 50%;"></div></div>
+                  </div>
+                </div>
+
+                <div class="slider-row">
+                  <div class="slider-head">
+                    <label for="sel-vol-slider">Node Gain</label>
+                    <span id="sel-vol-readout">85%</span>
+                  </div>
+                  <input type="range" id="sel-vol-slider" min="0" max="100" value="85" oninput="updateSelectedVolume(this.value)">
+                </div>
+
+                <div class="slider-row">
+                  <div class="slider-head">
+                    <label for="sel-elev-slider">3D Elevation (Y-Axis)</label>
+                    <span id="sel-elev-readout">0.0 m</span>
+                  </div>
+                  <input type="range" id="sel-elev-slider" min="-50" max="50" value="0" oninput="updateSelectedElevation(this.value)">
+                </div>
+
+                <div style="display: grid; gap: var(--space-xs);">
+                  <span class="field-label">Direct 3D Track Attachment (.MP3 / .WAV)</span>
+                  <div style="display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center;">
+                    <input type="file" id="attach-node-audio-input" accept="audio/*,.mp3,.wav,.ogg,.aac,.mpeg" class="sr-only" onchange="handleAttachAudioFile(this.files)">
+                    <button type="button" class="btn btn-sm" onclick="triggerNodeFileAttach()">
+                      <i data-lucide="file-audio" width="14" height="14" aria-hidden="true"></i>
+                      Attach Audio File
+                    </button>
+                    <button type="button" id="btn-revert-synth" class="btn btn-sm" onclick="revertSelectedToProcedural()" style="display: none;">
+                      Use Procedural Synth
+                    </button>
+                  </div>
+                  <div id="attach-status" class="inline-status"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage Node Roster -->
+            <div class="rail-card">
+              <div class="rail-head">
+                <h3 class="rail-title">Stage Nodes (<span id="roster-count">0</span>)</h3>
+                <button type="button" class="btn btn-sm" onclick="openCreatorModal()">+ Add</button>
+              </div>
+              <div class="node-list" id="node-roster-list"></div>
+            </div>
+
+            <!-- Final 3D Audio Recording & Download -->
+            <div class="rail-card">
+              <div class="rail-head">
+                <h3 class="rail-title">3D Mix Recorder &amp; Export</h3>
+                <span class="rec-badge" id="rec-badge">IDLE</span>
+              </div>
+              <div class="recorder-well">
+                <div class="rec-status-row">
+                  <span>Stereo Binaural Capture (48 kHz WAV)</span>
+                  <span class="rec-time" id="rec-timer">00:00</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-xs);">
+                  <button type="button" id="btn-rec-panel" class="btn btn-sm btn-primary" onclick="toggleRecording()">Start Recording</button>
+                  <button type="button" id="btn-download-wav" class="btn btn-sm btn-gold" onclick="downloadRecordedWav()" disabled>
+                    <i data-lucide="download" width="14" height="14" aria-hidden="true"></i>
+                    Download .WAV
+                  </button>
+                </div>
+                <audio id="rec-preview-audio" class="rec-audio-preview" controls style="display: none;"></audio>
+                <div id="rec-status-msg" class="inline-status"></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ARCHITECTURE & RESEARCH FOUNDATIONS -->
+    <section aria-labelledby="arch-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="arch-heading" class="section-title">Spatial Acoustic Engine &amp; Cultural Heritage Architecture</h2>
+          <p class="section-desc">How AetherSpace combines W3C Web Audio spatialisation with digital storytelling research for headset-free immersion.</p>
+        </div>
+      </div>
+
+      <div class="signal-flow-well" style="margin-bottom: var(--space-lg);">
+        <div class="stat-label" style="margin-bottom: var(--space-sm);">Web Audio API 3D Spatial Signal Graph</div>
+        <svg viewBox="0 0 880 110" width="100%" style="min-width: 640px; display: block;" role="img" aria-label="Audio signal routing diagram from source through BiquadFilterNode, GainNode, PannerNode HRTF, and Master Stereo Recorder">
+          <defs>
+            <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,1 L7,4 L0,7 Z" fill="#63c7d6"/>
+            </marker>
+          </defs>
+          <rect x="8" y="20" width="152" height="64" rx="8" fill="#152024" stroke="#63c7d6" stroke-width="1.5"/>
+          <text x="84" y="47" text-anchor="middle" fill="#edf3f5" font-family="Instrument Sans, sans-serif" font-size="13" font-weight="600">Audio Source</text>
+          <text x="84" y="67" text-anchor="middle" fill="#94a8b0" font-family="Geist Mono, monospace" font-size="10">.MP3/.WAV or Synth</text>
+
+          <line x1="160" y1="52" x2="196" y2="52" stroke="#63c7d6" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+          <rect x="198" y="20" width="144" height="64" rx="8" fill="#152024" stroke="#38515c" stroke-width="1.5"/>
+          <text x="270" y="47" text-anchor="middle" fill="#edf3f5" font-family="Instrument Sans, sans-serif" font-size="13" font-weight="600">BiquadFilterNode</text>
+          <text x="270" y="67" text-anchor="middle" fill="#94a8b0" font-family="Geist Mono, monospace" font-size="10">Distance Air Absorption</text>
+
+          <line x1="342" y1="52" x2="378" y2="52" stroke="#63c7d6" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+          <rect x="380" y="20" width="136" height="64" rx="8" fill="#152024" stroke="#38515c" stroke-width="1.5"/>
+          <text x="448" y="47" text-anchor="middle" fill="#edf3f5" font-family="Instrument Sans, sans-serif" font-size="13" font-weight="600">GainNode</text>
+          <text x="448" y="67" text-anchor="middle" fill="#94a8b0" font-family="Geist Mono, monospace" font-size="10">Inverse Attenuation</text>
+
+          <line x1="516" y1="52" x2="552" y2="52" stroke="#63c7d6" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+          <rect x="554" y="20" width="150" height="64" rx="8" fill="#163840" stroke="#e8b954" stroke-width="1.5"/>
+          <text x="629" y="47" text-anchor="middle" fill="#edf3f5" font-family="Instrument Sans, sans-serif" font-size="13" font-weight="600">PannerNode (HRTF)</text>
+          <text x="629" y="67" text-anchor="middle" fill="#e8b954" font-family="Geist Mono, monospace" font-size="10">3D X / Y / Z + Cones</text>
+
+          <line x1="704" y1="52" x2="740" y2="52" stroke="#63c7d6" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+          <rect x="742" y="20" width="130" height="64" rx="8" fill="#152024" stroke="#87d69b" stroke-width="1.5"/>
+          <text x="807" y="47" text-anchor="middle" fill="#edf3f5" font-family="Instrument Sans, sans-serif" font-size="13" font-weight="600">Master + WAV</text>
+          <text x="807" y="67" text-anchor="middle" fill="#87d69b" font-family="Geist Mono, monospace" font-size="10">Speakers &amp; Recorder</text>
+        </svg>
+      </div>
+
+      <div class="architecture-grid">
+        <article class="arch-card">
+          <h3>Headset-Free Spatial Immersion</h3>
+          <p>Built on native browser Web Audio API <code>PannerNode</code> and <code>AudioListener</code> coordinates, enabling real-time 3D sound localisation, elevation, and directional cones without headsets or native installs.</p>
+        </article>
+        <article class="arch-card">
+          <h3>Binaural Presence &amp; Narrative</h3>
+          <p>Informed by spatial audio journalism and oral storytelling research, the dynamic Story Guide aligns layered environmental scenes and proximity cues so listeners step inside living cultural spaces.</p>
+        </article>
+        <article class="arch-card">
+          <h3>Sri Lankan Cultural &amp; Natural Heritage</h3>
+          <p>Brings together Sinharaja's endemic Purple-faced Langur and Blue Magpie, Anuradhapura's 1982 UNESCO sacred stupas and hydraulic tanks, and Galle Dutch Fort's 1988 UNESCO multicultural ramparts.</p>
+        </article>
+      </div>
+
+      <footer class="sources-footer">
+        <strong>Sources &amp; Grounding:</strong>
+        <span>Web Audio API &amp; PannerNode Spatialisation Guides (MDN Web Docs); Spatial Audio Designer (Polys &amp; Bendelac, Virginia Tech, Web3D ’22); Spatial Audio and Immersive Journalism (Vicente &amp; Pérez-Seijo, Profesional de la información, 2022); Foundations of Interactive Sound Design for Traditional Storytelling (Wyse &amp; Subramanian, NUS); Empowering Voices, Shaping Futures: Digital Storytelling for Sustainable Transformation (Funk, 2024); Real-Time Sound Mapping in Augmented Reality Using Web Browser Technologies (Vlad &amp; Buraga, WEBIST 2025); Immersive Web Experiences Without Headsets (Brill Creations); Sri Lankan regional heritage audio transcripts (Anuradhapura, Galle Dutch Fort) &amp; Sinharaja forest field notes (Chercheur de sons).</span>
+      </footer>
+    </section>
+  </div>
+
+  <!-- CREATOR MODE MODAL -->
+  <div id="creator-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="creator-modal-title">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <div>
+          <h2 id="creator-modal-title" style="margin: 0; font-family: var(--font-headline); font-size: 1.35rem;">Creator Mode — Build 3D Sound Node</h2>
+          <div class="field-label" style="margin-top: 2px;">Procedural Custom Text Synthesis or Direct .MP3 / .WAV Spatial Routing</div>
+        </div>
+        <button type="button" class="btn btn-sm" onclick="closeCreatorModal()">Close</button>
+      </div>
+
+      <form id="creator-form" onsubmit="handleCreatorSubmit(event)" style="display: grid; gap: var(--space-md);">
+        <div class="creator-grid">
+          <div class="field-stack">
+            <label for="creator-target-stage" class="field-label">Target Stage Selector</label>
+            <select id="creator-target-stage" class="select-ctrl">
+              <option value="sinharaja">Sinharaja Rainforest</option>
+              <option value="ancient">Ancient Historical Cities</option>
+              <option value="galle">Galle Dutch Fort</option>
+              <option value="religion">Religion Background</option>
+              <option value="ocean">Ocean &amp; Beach Vibe</option>
+              <option value="custom">New Custom Open Stage</option>
+            </select>
+          </div>
+
+          <div class="field-stack">
+            <label for="creator-node-name" class="field-label">Node Label</label>
+            <input type="text" id="creator-node-name" class="input-ctrl" value="Sacred Sanctuary Echo" maxlength="42" required>
+          </div>
+
+          <div class="field-stack creator-full">
+            <label for="creator-node-story" class="field-label">Story Guide Subtitle</label>
+            <input type="text" id="creator-node-story" class="input-ctrl" value="Custom spatial soundscape drifting through the 3D horizon around the explorer.">
+          </div>
+
+          <div class="field-stack">
+            <label for="creator-source-mode" class="field-label">Audio Source Mode</label>
+            <select id="creator-source-mode" class="select-ctrl" onchange="toggleCreatorSourceMode(this.value)">
+              <option value="procedural">Procedural Web Audio Generator</option>
+              <option value="upload">Upload .MP3 / .WAV Track (Direct 3D)</option>
+            </select>
+          </div>
+
+          <div class="field-stack" id="creator-proc-cat-wrap">
+            <label for="creator-proc-category" class="field-label">Procedural Sound Category</label>
+            <select id="creator-proc-category" class="select-ctrl" onchange="toggleCustomTextField(this.value)">
+              <option value="custom_text">Other / Custom Text</option>
+              <option value="magpie">Rainforest Birdsong (Blue Magpie)</option>
+              <option value="langur">Canopy Call (Purple-faced Langur)</option>
+              <option value="elephant">Forest Rumble (Asian Elephant)</option>
+              <option value="temple_bell">Sacred Resonance (Bronze Bell)</option>
+              <option value="chaththa_chant">Devotional Harmonic Chant</option>
+              <option value="ocean_waves">Indian Ocean Coastal Swells</option>
+              <option value="cheap_thrills">Tropical Acoustic Marimba</option>
+            </select>
+          </div>
+
+          <div class="field-stack creator-full" id="creator-custom-text-wrap">
+            <label for="creator-custom-formula" class="field-label">Custom Text Formula (Frequencies, Tempo, or Descriptive Seed)</label>
+            <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+              <input type="text" id="creator-custom-formula" class="input-ctrl" style="flex: 1; min-width: 220px;" value="432Hz golden shimmer + slow wind pulse">
+              <button type="button" class="btn" onclick="previewCreatorProcedural()">Preview Sound</button>
+            </div>
+            <span id="creator-preview-status" class="inline-status"></span>
+          </div>
+
+          <div class="field-stack creator-full" id="creator-upload-wrap" style="display: none;">
+            <label for="creator-audio-file" class="field-label">Attach .MP3 / .WAV / .OGG Audio File (Routed directly through PannerNode HRTF)</label>
+            <input type="file" id="creator-audio-file" class="input-ctrl" style="padding-top: 9px;" accept="audio/*,.mp3,.wav,.ogg,.aac,.mpeg" onchange="handleCreatorAudioSelected(this.files)">
+            <span id="creator-audio-status" class="inline-status"></span>
+          </div>
+
+          <!-- Custom Accent Ring Color Picker -->
+          <div class="field-stack">
+            <label for="creator-hex-input" class="field-label">Custom Accent Ring Colour (Hex)</label>
+            <div class="color-picker-row">
+              <input type="color" id="creator-color-swatch" class="color-swatch-input" value="#63c7d6" oninput="syncColorFromSwatch(this.value)" aria-label="Colour swatch picker">
+              <input type="text" id="creator-hex-input" class="input-ctrl" style="flex: 1; font-family: var(--font-label);" value="#63c7d6" pattern="^#[0-9A-Fa-f]{6}$" oninput="syncColorFromHex(this.value)">
+            </div>
+          </div>
+
+          <div class="field-stack">
+            <label for="creator-elev-input" class="field-label">Initial 3D Elevation (<span id="creator-elev-val">0.0 m</span>)</label>
+            <input type="range" id="creator-elev-input" min="-50" max="50" value="0" oninput="updateCreatorElevReadout(this.value)">
+          </div>
+
+          <!-- Icon Picker + Custom Image Upload & Ctrl+V Paste -->
+          <div class="field-stack creator-full">
+            <span class="field-label">Visual Node Icon (Preset, Upload `+`, or Ctrl+V Paste Image)</span>
+            <div class="icon-picker-grid" id="creator-icon-grid">
+              <!-- Preset icon buttons populated by JS + Upload '+' button -->
+            </div>
+            <input type="file" id="creator-icon-upload" accept="image/*" class="sr-only" onchange="handleCreatorIconUpload(this.files)">
+            <div class="paste-zone" id="icon-paste-zone" tabindex="0">
+              <span>Press <strong>Ctrl+V</strong> anywhere in Creator Mode to paste a circular-masked image icon, or click <strong>+</strong> above to upload.</span>
+              <img id="creator-paste-preview" class="paste-preview-thumb" alt="Custom circular icon preview" style="display: none;">
+            </div>
+            <div id="creator-icon-status" class="inline-status"></div>
+          </div>
+        </div>
+
+        <div id="creator-form-error" class="inline-status is-error"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-sm); padding-top: var(--space-sm); border-top: var(--hairline);">
+          <button type="button" class="btn" onclick="closeCreatorModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Node to 3D Stage</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <api-shim></api-shim>
+  <script>
+    // =========================================================================
+    // AetherSpace 3D Spatial Audio Engine
+    // =========================================================================
+
+    const ICON_PATHS = {
+      elephant: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13c0-4 3-7 7-7s7 3 7 7v4h-3v-3h-2v3h-4v-3H8v3H5v-4z"/><path d="M19 11c1.5 0 2.5 1 2.5 3.5S20 18 19 18"/><circle cx="15.5" cy="10" r="1" fill="currentColor"/></svg>`,
+      bird: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/></svg>`,
+      peacock: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="3"/><path d="M12 11V4"/><path d="M9 12 4 7"/><path d="M15 12l5-5"/><path d="M7.5 15.5 3 16"/><path d="M16.5 15.5 21 16"/><circle cx="12" cy="3" r="1"/><circle cx="3.5" cy="6.5" r="1"/><circle cx="20.5" cy="6.5" r="1"/></svg>`,
+      langur: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><circle cx="5.5" cy="10.5" r="2"/><circle cx="18.5" cy="10.5" r="2"/><circle cx="10" cy="11" r="0.8" fill="currentColor"/><circle cx="14" cy="11" r="0.8" fill="currentColor"/><path d="M10 14.5c1 .8 3 .8 4 0"/></svg>`,
+      stupa: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M10 7h4"/><path d="M6 17a6 6 0 0 1 12 0"/><path d="M4 17h16v3H4z"/></svg>`,
+      fort: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8h3v3h3V8h4v3h3V8h3v12H4z"/><path d="M10 20v-4a2 2 0 0 1 4 0v4"/></svg>`,
+      drum: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.66 3.13 3 7 3s7-1.34 7-3V8"/><path d="M7 10.5 12 18l5-7.5"/></svg>`,
+      lotus: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4c2.5 3.5 2.5 8 0 12-2.5-4-2.5-8.5 0-12z"/><path d="M12 16c-4 0-7-2.5-8-6 3.5 0 6.5 1.8 8 6z"/><path d="M12 16c4 0 7-2.5 8-6-3.5 0-6.5 1.8-8 6z"/><path d="M5 19h14"/></svg>`,
+      wave: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/><path d="M2 16c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/></svg>`,
+      music: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+      orb: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="8" ry="3"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>`
+    };
+
+    const STAGE_DEFINITIONS = [
+      {
+        id: `sinharaja`,
+        title: `Sinharaja Rainforest`,
+        tag: `Endemic Wildlife`,
+        accent: `#87d69b`,
+        icon: `langur`,
+        summary: `Tropical wet evergreen canopy alive with the endemic Sri Lanka Blue Magpie, Purple-faced Langur, Peacock, and Asian Elephant.`,
+        nodes: [
+          {
+            id: `sin-langur`,
+            name: `Purple-faced Langur`,
+            icon: `langur`,
+            color: `#87d69b`,
+            nx: 0.72,
+            ny: 0.28,
+            elevation: 28,
+            volume: 86,
+            synthType: `langur`,
+            story: `Semnopithecus vetulus vetulus — endemic Purple-faced Langur echoing booming territorial hoots through Sinharaja's upper rainforest canopy.`
+          },
+          {
+            id: `sin-magpie`,
+            name: `Sri Lanka Blue Magpie`,
+            icon: `bird`,
+            color: `#63c7d6`,
+            nx: 0.28,
+            ny: 0.25,
+            elevation: 36,
+            volume: 82,
+            synthType: `magpie`,
+            story: `Urocissa ornata — bright twin-note calls from Sinharaja's mixed-species bird flocks darting through mossy branches overhead.`
+          },
+          {
+            id: `sin-elephant`,
+            name: `Asian Elephant`,
+            icon: `elephant`,
+            color: `#e8b954`,
+            nx: 0.22,
+            ny: 0.72,
+            elevation: -12,
+            volume: 90,
+            synthType: `elephant`,
+            story: `Deep low-frequency infrasonic rumbles and forest trumpets reverberating across dense lowland valleys.`
+          },
+          {
+            id: `sin-peacock`,
+            name: `Peacock Call`,
+            icon: `peacock`,
+            color: `#f08c70`,
+            nx: 0.78,
+            ny: 0.74,
+            elevation: 6,
+            volume: 78,
+            synthType: `peacock`,
+            story: `Resonant heraldic call of the Indian Peafowl rising from sunlit forest clearings along the edge of the reserve.`
+          }
+        ]
+      },
+      {
+        id: `ancient`,
+        title: `Ancient Historical Cities`,
+        tag: `UNESCO 1982`,
+        accent: `#e8b954`,
+        icon: `stupa`,
+        summary: `Anuradhapura stupas, the sacred Jaya Sri Maha Bodhi, and monumental hydraulic tanks of Sri Lanka's first ancient capital.`,
+        nodes: [
+          {
+            id: `anc-main`,
+            name: `Anuradhapura Audio`,
+            icon: `stupa`,
+            color: `#e8b954`,
+            nx: 0.5,
+            ny: 0.26,
+            elevation: 10,
+            volume: 88,
+            synthType: `anuradhapura`,
+            story: `Anuradhapura — Sri Lanka's first capital and UNESCO World Heritage Site (1982), celebrated for colossal brick stupas such as Jetavanaramaya and Ruwanwelisaya.`
+          },
+          {
+            id: `anc-bodhi`,
+            name: `Jaya Sri Maha Bodhi`,
+            icon: `lotus`,
+            color: `#87d69b`,
+            nx: 0.24,
+            ny: 0.54,
+            elevation: 18,
+            volume: 82,
+            synthType: `bo_leaves`,
+            story: `Brought in the 3rd century BCE by Sanghamitta Maha Theri — the oldest historically documented living tree, sacred to Sri Lankan Buddhist heritage.`
+          },
+          {
+            id: `anc-tank`,
+            name: `Tissa Wewa Spillway`,
+            icon: `wave`,
+            color: `#63c7d6`,
+            nx: 0.77,
+            ny: 0.64,
+            elevation: -8,
+            volume: 80,
+            synthType: `water_sluice`,
+            story: `Ancient hydraulic engineering of Tissa Wewa, Abhaya Wewa, and Nuwara Wewa sustaining an agrarian civilisation through precision sluices.`
+          }
+        ]
+      },
+      {
+        id: `galle`,
+        title: `Galle Dutch Fort`,
+        tag: `UNESCO 1988`,
+        accent: `#f08c70`,
+        icon: `fort`,
+        summary: `Colonial ramparts, maritime breezes, and multicultural harmony where European masonry meets South Asian heritage.`,
+        nodes: [
+          {
+            id: `gal-main`,
+            name: `Gallefort Audio`,
+            icon: `fort`,
+            color: `#f08c70`,
+            nx: 0.48,
+            ny: 0.28,
+            elevation: 4,
+            volume: 88,
+            synthType: `galle_fort`,
+            story: `Galle Dutch Fort — 16th-century Portuguese bastion expanded by the Dutch in the 17th–18th centuries and inscribed as a UNESCO World Heritage Site in 1988.`
+          },
+          {
+            id: `gal-rampart`,
+            name: `Flag Rock Rampart Surf`,
+            icon: `wave`,
+            color: `#63c7d6`,
+            nx: 0.22,
+            ny: 0.68,
+            elevation: -14,
+            volume: 84,
+            synthType: `ocean_waves`,
+            story: `Indian Ocean swells breaking against coral-stone walls where Sinhalese, Tamil, Muslim, and Burgher communities share living streets.`
+          },
+          {
+            id: `gal-breeze`,
+            name: `Harbour Trade Breeze`,
+            icon: `bird`,
+            color: `#e8b954`,
+            nx: 0.78,
+            ny: 0.52,
+            elevation: 20,
+            volume: 74,
+            synthType: `seabreeze_gulls`,
+            story: `Southern coastal wind drifting past church, mosque, Buddhist temple, and Hindu kovil within the historic fortified precinct.`
+          }
+        ]
+      },
+      {
+        id: `religion`,
+        title: `Religion Background`,
+        tag: `Sacred Chants`,
+        accent: `#f3b562`,
+        icon: `lotus`,
+        summary: `Devotional Pali verses, ceremonial Hevisi temple drums, and resonant bronze chimes for spiritual reflection.`,
+        nodes: [
+          {
+            id: `rel-chaththa`,
+            name: `Chaththa Manawaka Gatha`,
+            icon: `lotus`,
+            color: `#f3b562`,
+            nx: 0.5,
+            ny: 0.25,
+            elevation: 12,
+            volume: 92,
+            synthType: `chaththa_chant`,
+            story: `Chaththa Manawaka Gatha — reverent Pali devotional chant echoing serenely across temple sanctums and stone courtyards.`
+          },
+          {
+            id: `rel-hevisi`,
+            name: `Hevisi Temple Drums`,
+            icon: `drum`,
+            color: `#f08c70`,
+            nx: 0.24,
+            ny: 0.62,
+            elevation: 0,
+            volume: 78,
+            synthType: `temple_drums`,
+            story: `Traditional rhythmic Hevisi offerings performed on ceremonial daula and twin tammattama drums at dusk.`
+          },
+          {
+            id: `rel-bell`,
+            name: `Sacred Bronze Bell`,
+            icon: `orb`,
+            color: `#e8b954`,
+            nx: 0.77,
+            ny: 0.58,
+            elevation: 22,
+            volume: 80,
+            synthType: `temple_bell`,
+            story: `Deep metallic overtones resonating across monastery terraces, inviting calm mindfulness and acoustic stillness.`
+          }
+        ]
+      },
+      {
+        id: `ocean`,
+        title: `Ocean & Beach Vibe`,
+        tag: `Coastal Swells`,
+        accent: `#63c7d6`,
+        icon: `wave`,
+        summary: `Indian Ocean swells, coastal relaxation rhythms, and tropical acoustic grooves along golden southern shores.`,
+        nodes: [
+          {
+            id: `ocn-thrills`,
+            name: `Cheap Thrills`,
+            icon: `music`,
+            color: `#63c7d6`,
+            nx: 0.5,
+            ny: 0.28,
+            elevation: 6,
+            volume: 86,
+            synthType: `cheap_thrills`,
+            story: `Cheap Thrills — sunlit coastal acoustic marimba and steel-pan groove (attach your local .mp3/.wav file anytime for direct 3D spatial routing).`
+          },
+          {
+            id: `ocn-swells`,
+            name: `Indian Ocean Swells`,
+            icon: `wave`,
+            color: `#87d69b`,
+            nx: 0.23,
+            ny: 0.66,
+            elevation: -10,
+            volume: 85,
+            synthType: `ocean_waves`,
+            story: `Slow rhythmic breakers rolling across the southern continental shelf, shifting naturally from left to right horizon.`
+          },
+          {
+            id: `ocn-palms`,
+            name: `Coastal Breeze & Gulls`,
+            icon: `bird`,
+            color: `#e8b954`,
+            nx: 0.78,
+            ny: 0.45,
+            elevation: 24,
+            volume: 72,
+            synthType: `seabreeze_gulls`,
+            story: `Warm sea spray and overhead coastal bird calls balancing the stereo depth field.`
+          }
+        ]
+      },
+      {
+        id: `custom`,
+        title: `Custom Open Stage`,
+        tag: `Blank 3D Studio`,
+        accent: `#9ea8f5`,
+        icon: `orb`,
+        summary: `Blank 3D canvas for user-created custom stages, procedural text formulas, circular image icons, and uploaded tracks.`,
+        nodes: []
+      }
+    ];
+
+    // Runtime state
+    let appState = {
+      activeStageId: `sinharaja`,
+      spatialMode: `HRTF`,
+      masterVolume: 80,
+      selectedNodeId: `sin-langur`,
+      stageNodes: {}
+    };
+
+    // Non-persisted runtime registries (audio buffers, decoded files, circular custom image URIs)
+    const runtimeAudioFiles = {};   // nodeId -> { buffer: AudioBuffer|null, mediaUrl: string|null, fileName: string }
+    const runtimeCustomImages = {}; // nodeId -> dataUrl
+    const activeAudioEngines = {};  // nodeId -> NodeAudioController
+
+    let audioCtx = null;
+    let masterCompressor = null;
+    let masterGain = null;
+    let analyserNode = null;
+    let recorderProcessor = null;
+
+    let isRecording = false;
+    let recLeftChunks = [];
+    let recRightChunks = [];
+    let recStartTime = 0;
+    let recTimerInterval = null;
+    let lastRecordedWavBlob = null;
+    let lastRecordedWavUrl = null;
+
+    let dragState = null;
+    let stageAnimId = null;
+    let heroAnimId = null;
+    let creatorTempAudio = null;
+    let creatorTempIconImg = null;
+    let creatorSelectedIconId = `orb`;
+
+    // Initialise stageNodes from defaults
+    function initDefaultStageNodes() {
+      STAGE_DEFINITIONS.forEach(function(stage) {
+        if (!appState.stageNodes[stage.id]) {
+          appState.stageNodes[stage.id] = stage.nodes.map(function(n) {
+            return Object.assign({ isPlaying: false, sourceType: `procedural`, customFormula: `` }, n);
+          });
+        }
+      });
+    }
+
+    // =========================================================================
+    // Persistence via notebookAppApi (lightweight structural params ONLY)
+    // =========================================================================
+    async function loadPersistedState() {
+      try {
+        if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === 'function') {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && typeof saved === 'object') {
+            if (saved.activeStageId && STAGE_DEFINITIONS.some(function(s) { return s.id === saved.activeStageId; })) {
+              appState.activeStageId = saved.activeStageId;
+            }
+            if (saved.spatialMode === `HRTF` || saved.spatialMode === `stereo`) {
+              appState.spatialMode = saved.spatialMode;
+            }
+            if (typeof saved.masterVolume === 'number') {
+              appState.masterVolume = Math.max(0, Math.min(100, saved.masterVolume));
+            }
+            if (saved.stageNodes && typeof saved.stageNodes === 'object') {
+              STAGE_DEFINITIONS.forEach(function(stage) {
+                if (Array.isArray(saved.stageNodes[stage.id])) {
+                  appState.stageNodes[stage.id] = saved.stageNodes[stage.id].map(function(n) {
+                    return Object.assign({}, n, { isPlaying: false });
+                  });
+                }
+              });
+            }
+            if (saved.selectedNodeId) {
+              appState.selectedNodeId = saved.selectedNodeId;
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback cleanly to defaults
+      }
+    }
+
+    async function savePersistedState() {
+      try {
+        if (!window.notebookAppApi || typeof window.notebookAppApi.setAppState !== 'function') return;
+        const cleanStageNodes = {};
+        Object.keys(appState.stageNodes).forEach(function(sid) {
+          cleanStageNodes[sid] = (appState.stageNodes[sid] || []).map(function(n) {
+            return {
+              id: n.id,
+              name: n.name,
+              icon: n.icon,
+              color: n.color,
+              nx: Number(n.nx.toFixed(4)),
+              ny: Number(n.ny.toFixed(4)),
+              elevation: n.elevation || 0,
+              volume: typeof n.volume === 'number' ? n.volume : 80,
+              synthType: n.synthType || `custom_text`,
+              customFormula: n.customFormula || ``,
+              story: n.story || ``
+            };
+          });
+        });
+        await window.notebookAppApi.setAppState({
+          activeStageId: appState.activeStageId,
+          spatialMode: appState.spatialMode,
+          masterVolume: appState.masterVolume,
+          selectedNodeId: appState.selectedNodeId,
+          stageNodes: cleanStageNodes
+        });
+      } catch (err) {
+        // Ignore transient save errors
+      }
+    }
+
+    // =========================================================================
+    // Web Audio API Engine & 3D PannerNode Routing
+    // =========================================================================
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return null;
+        audioCtx = new AudioCtx();
+
+        // Set AudioListener at origin facing forward (-Z)
+        const listener = audioCtx.listener;
+        if (listener && listener.positionX) {
+          listener.positionX.value = 0;
+          listener.positionY.value = 0;
+          listener.positionZ.value = 0;
+          listener.forwardX.value = 0;
+          listener.forwardY.value = 0;
+          listener.forwardZ.value = -1;
+          listener.upX.value = 0;
+          listener.upY.value = 1;
+          listener.upZ.value = 0;
+        }
+
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.value = -14;
+        masterCompressor.knee.value = 18;
+        masterCompressor.ratio.value = 4;
+
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = (appState.masterVolume / 100) * 0.85;
+
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+
+        // Stereo capture node for live 3D WAV recording
+        if (typeof audioCtx.createScriptProcessor === 'function') {
+          recorderProcessor = audioCtx.createScriptProcessor(4096, 2, 2);
+          recorderProcessor.onaudioprocess = function(evt) {
+            if (!isRecording) return;
+            const inL = evt.inputBuffer.getChannelData(0);
+            const inR = evt.inputBuffer.numberOfChannels > 1 ? evt.inputBuffer.getChannelData(1) : inL;
+            recLeftChunks.push(new Float32Array(inL));
+            recRightChunks.push(new Float32Array(inR));
+          };
+          masterGain.connect(recorderProcessor);
+          // Connect processor silently to destination so onaudioprocess fires in Chrome/Firefox
+          const silentTap = audioCtx.createGain();
+          silentTap.gain.value = 0;
+          recorderProcessor.connect(silentTap);
+          silentTap.connect(audioCtx.destination);
+        }
+
+        masterCompressor.connect(masterGain);
+        masterGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(function() {});
+      }
+      return audioCtx;
+    }
+
+    function computeNodeSpatialMetrics(node) {
+      const stageEl = document.getElementById('spatial-stage');
+      const w = stageEl ? stageEl.clientWidth || 720 : 720;
+      const h = stageEl ? stageEl.clientHeight || 510 : 510;
+      const lx = w * 0.5;
+      const ly = h * 0.5;
+      const nxPx = node.nx * w;
+      const nyPx = node.ny * h;
+
+      const dxPx = nxPx - lx;
+      const dyPx = nyPx - ly;
+      const distPx = Math.round(Math.hypot(dxPx, dyPx));
+
+      const normX = Math.max(-1, Math.min(1, dxPx / (w * 0.42)));
+      const normZ = Math.max(-1, Math.min(1, dyPx / (h * 0.42)));
+
+      const rightPct = Math.round(((normX + 1) / 2) * 100);
+      const leftPct = 100 - rightPct;
+
+      // Convert pixel space to metres in 3D AudioListener space
+      const worldX = normX * 4.5;
+      const worldZ = normZ * 4.5;
+      const worldY = ((node.elevation || 0) / 10);
+
+      return {
+        distPx: distPx,
+        leftPct: leftPct,
+        rightPct: rightPct,
+        normX: normX,
+        normZ: normZ,
+        worldX: worldX,
+        worldY: worldY,
+        worldZ: worldZ,
+        nxPx: nxPx,
+        nyPx: nyPx,
+        lx: lx,
+        ly: ly
+      };
+    }
+
+    function createSpatialPanner(ctx) {
+      const mode = appState.spatialMode === `HRTF` ? `HRTF` : `equalpower`;
+      if (typeof ctx.createPanner === 'function') {
+        const p = ctx.createPanner();
+        p.panningModel = mode;
+        p.distanceModel = `inverse`;
+        p.refDistance = 1;
+        p.maxDistance = 15;
+        p.rolloffFactor = 1.15;
+        p.coneInnerAngle = 360;
+        p.coneOuterAngle = 360;
+        p.coneOuterGain = 0.35;
+        return { node: p, isStereoFallback: false };
+      }
+      if (typeof window.PannerNode === 'function') {
+        const p = new window.PannerNode(ctx, {
+          panningModel: mode,
+          distanceModel: `inverse`,
+          refDistance: 1,
+          maxDistance: 15,
+          rolloffFactor: 1.15,
+          coneInnerAngle: 360,
+          coneOuterAngle: 360,
+          coneOuterGain: 0.35
+        });
+        return { node: p, isStereoFallback: false };
+      }
+      if (typeof ctx.createStereoPanner === 'function') {
+        return { node: ctx.createStereoPanner(), isStereoFallback: true };
+      }
+      return { node: ctx.createGain(), isStereoFallback: true };
+    }
+
+    function updateAudioEngineSpatial(node) {
+      const ctrl = activeAudioEngines[node.id];
+      if (!ctrl || !audioCtx) return;
+      const m = computeNodeSpatialMetrics(node);
+      const now = audioCtx.currentTime;
+
+      const distFactor = 1 / (1 + (m.distPx / 260));
+      const userGain = (typeof node.volume === 'number' ? node.volume : 80) / 100;
+      if (ctrl.gainNode && ctrl.gainNode.gain) {
+        ctrl.gainNode.gain.setTargetAtTime(userGain * distFactor * 0.9, now, 0.04);
+      }
+
+      if (ctrl.isStereoFallback) {
+        if (ctrl.pannerNode && ctrl.pannerNode.pan && ctrl.pannerNode.pan.setTargetAtTime) {
+          ctrl.pannerNode.pan.setTargetAtTime(m.normX, now, 0.04);
+        }
+        return;
+      }
+
+      if (appState.spatialMode === `HRTF`) {
+        ctrl.pannerNode.panningModel = `HRTF`;
+        if (ctrl.pannerNode.positionX) {
+          ctrl.pannerNode.positionX.setTargetAtTime(m.worldX, now, 0.04);
+          ctrl.pannerNode.positionY.setTargetAtTime(m.worldY, now, 0.04);
+          ctrl.pannerNode.positionZ.setTargetAtTime(m.worldZ, now, 0.04);
+        } else if (typeof ctrl.pannerNode.setPosition === 'function') {
+          ctrl.pannerNode.setPosition(m.worldX, m.worldY, m.worldZ);
+        }
+        // Distance air absorption lowpass
+        const cutoff = Math.max(2200, 18000 - m.distPx * 36);
+        ctrl.airFilter.frequency.setTargetAtTime(cutoff, now, 0.06);
+      } else {
+        ctrl.pannerNode.panningModel = `equalpower`;
+        if (ctrl.pannerNode.positionX) {
+          ctrl.pannerNode.positionX.setTargetAtTime(m.worldX, now, 0.04);
+          ctrl.pannerNode.positionY.setTargetAtTime(0, now, 0.04);
+          ctrl.pannerNode.positionZ.setTargetAtTime(-0.5, now, 0.04);
+        } else if (typeof ctrl.pannerNode.setPosition === 'function') {
+          ctrl.pannerNode.setPosition(m.worldX, 0, -0.5);
+        }
+        ctrl.airFilter.frequency.setTargetAtTime(18000, now, 0.06);
+      }
+    }
+
+    function stopNodeAudio(nodeId) {
+      const ctrl = activeAudioEngines[nodeId];
+      if (!ctrl) return;
+      try {
+        if (ctrl.timers) ctrl.timers.forEach(function(t) { clearInterval(t); });
+        if (ctrl.mediaEl) {
+          ctrl.mediaEl.pause();
+          ctrl.mediaEl.currentTime = 0;
+        }
+        if (ctrl.stopables) {
+          ctrl.stopables.forEach(function(s) {
+            try { s.stop(); } catch (e) {}
+            try { s.disconnect(); } catch (e) {}
+          });
+        }
+        if (ctrl.pannerNode) ctrl.pannerNode.disconnect();
+      } catch (e) {}
+      delete activeAudioEngines[nodeId];
+    }
+
+    function stopAllStageAudio() {
+      Object.keys(activeAudioEngines).forEach(function(id) {
+        stopNodeAudio(id);
+      });
+      const currentList = getActiveStageNodes();
+      currentList.forEach(function(n) { n.isPlaying = false; });
+    }
+
+    // Create noise buffer helper
+    function createNoiseBuffer(ctx, durationSec, colour) {
+      const length = Math.floor(ctx.sampleRate * durationSec);
+      const buf = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < length; i++) {
+        const white = Math.random() * 2 - 1;
+        if (colour === `brown`) {
+          lastOut = (lastOut + 0.02 * white) / 1.02;
+          data[i] = lastOut * 3.2;
+        } else {
+          data[i] = white * 0.5;
+        }
+      }
+      return buf;
+    }
+
+    // Deterministic parser for 'Other / Custom Text' procedural audio
+    function parseCustomTextFormula(text) {
+      const str = (text || `432Hz ambient drift`).toLowerCase();
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const absHash = Math.abs(hash);
+      const hzMatch = str.match(/(\d{2,4})\s*hz/);
+      const baseFreq = hzMatch ? Math.max(60, Math.min(1200, Number(hzMatch[1]))) : (140 + (absHash % 320));
+      const bpmMatch = str.match(/(\d{2,3})\s*bpm/);
+      const rateMs = bpmMatch ? Math.max(250, Math.round(60000 / Number(bpmMatch[1]))) : (900 + (absHash % 1800));
+      const hasWind = /wind|breeze|air|rain|water|ocean|river/.test(str);
+      const hasBell = /bell|chime|shimmer|crystal|gong/.test(str);
+      const hasPulse = /pulse|beat|drum|rhythm|fast/.test(str);
+      return { baseFreq: baseFreq, rateMs: rateMs, hasWind: hasWind, hasBell: hasBell, hasPulse: hasPulse, seed: absHash };
+    }
+
+    function startNodeAudio(node) {
+      const ctx = ensureAudioContext();
+      if (!ctx) {
+        node.isPlaying = true;
+        return;
+      }
+      stopNodeAudio(node.id);
+
+      const airFilter = ctx.createBiquadFilter();
+      airFilter.type = `lowpass`;
+      airFilter.frequency.value = 16000;
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 0.5;
+
+      const pannerWrap = createSpatialPanner(ctx);
+      const pannerNode = pannerWrap.node;
+
+      airFilter.connect(gainNode);
+      gainNode.connect(pannerNode);
+      pannerNode.connect(masterCompressor);
+
+      const ctrl = {
+        airFilter: airFilter,
+        gainNode: gainNode,
+        pannerNode: pannerNode,
+        isStereoFallback: pannerWrap.isStereoFallback,
+        stopables: [],
+        timers: [],
+        mediaEl: null
+      };
+      activeAudioEngines[node.id] = ctrl;
+      updateAudioEngineSpatial(node);
+
+      // DIRECT 3D SPATIAL ROUTING FOR ATTACHED .MP3 / .WAV TRACKS
+      const attached = runtimeAudioFiles[node.id];
+      if (attached && (attached.buffer || attached.mediaUrl)) {
+        if (attached.buffer) {
+          const src = ctx.createBufferSource();
+          src.buffer = attached.buffer;
+          src.loop = true;
+          src.connect(airFilter);
+          src.start();
+          ctrl.stopables.push(src);
+        } else if (attached.mediaUrl) {
+          const audioEl = new Audio();
+          audioEl.src = attached.mediaUrl;
+          audioEl.loop = true;
+          audioEl.crossOrigin = `anonymous`;
+          const mediaSrc = ctx.createMediaElementSource(audioEl);
+          mediaSrc.connect(airFilter);
+          audioEl.play().catch(function() {});
+          ctrl.mediaEl = audioEl;
+        }
+        node.isPlaying = true;
+        return;
+      }
+
+      // PROCEDURAL WEB AUDIO SYNTHESIS FOR PRE-LOADED & GENERATOR NODES
+      const kind = node.synthType || `custom_text`;
+      const out = airFilter;
+
+      if (kind === `ocean_waves` || kind === `water_sluice` || kind === `bo_leaves`) {
+        const noise = ctx.createBufferSource();
+        noise.buffer = createNoiseBuffer(ctx, 4, kind === `ocean_waves` ? `brown` : `pink`);
+        noise.loop = true;
+
+        const filt = ctx.createBiquadFilter();
+        filt.type = `bandpass`;
+        filt.frequency.value = kind === `ocean_waves` ? 320 : (kind === `water_sluice` ? 780 : 1900);
+        filt.Q.value = kind === `bo_leaves` ? 1.4 : 0.7;
+
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = kind === `ocean_waves` ? 0.12 : (kind === `water_sluice` ? 0.35 : 0.22);
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = kind === `ocean_waves` ? 240 : 420;
+
+        const amp = ctx.createGain();
+        amp.gain.value = kind === `ocean_waves` ? 0.42 : 0.28;
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(filt.frequency);
+        noise.connect(filt);
+        filt.connect(amp);
+        amp.connect(out);
+
+        noise.start();
+        lfo.start();
+        ctrl.stopables.push(noise, lfo);
+      } else if (kind === `magpie`) {
+        function triggerMagpiePhrase() {
+          const t = ctx.currentTime;
+          const notes = [1480, 1980, 1660, 2120];
+          notes.forEach(function(freq, idx) {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = `triangle`;
+            const st = t + idx * 0.14;
+            osc.frequency.setValueAtTime(freq, st);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.15, st + 0.08);
+            g.gain.setValueAtTime(0.001, st);
+            g.gain.linearRampToValueAtTime(0.14, st + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.001, st + 0.12);
+            osc.connect(g);
+            g.connect(out);
+            osc.start(st);
+            osc.stop(st + 0.13);
+          });
+        }
+        triggerMagpiePhrase();
+        ctrl.timers.push(setInterval(triggerMagpiePhrase, 2600));
+      } else if (kind === `langur`) {
+        function triggerLangurCall() {
+          const t = ctx.currentTime;
+          [0, 0.28, 0.56].forEach(function(offset, i) {
+            const osc = ctx.createOscillator();
+            const filt = ctx.createBiquadFilter();
+            const g = ctx.createGain();
+            osc.type = `sawtooth`;
+            const base = i === 1 ? 165 : 142;
+            osc.frequency.setValueAtTime(base, t + offset);
+            osc.frequency.exponentialRampToValueAtTime(86, t + offset + 0.22);
+            filt.type = `bandpass`;
+            filt.frequency.value = 380;
+            filt.Q.value = 2.4;
+            g.gain.setValueAtTime(0.001, t + offset);
+            g.gain.linearRampToValueAtTime(0.24, t + offset + 0.04);
+            g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.24);
+            osc.connect(filt);
+            filt.connect(g);
+            g.connect(out);
+            osc.start(t + offset);
+            osc.stop(t + offset + 0.25);
+          });
+        }
+        triggerLangurCall();
+        ctrl.timers.push(setInterval(triggerLangurCall, 3200));
+      } else if (kind === `elephant`) {
+        const rumble = ctx.createOscillator();
+        rumble.type = `triangle`;
+        rumble.frequency.value = 54;
+        const rumbleGain = ctx.createGain();
+        rumbleGain.gain.value = 0.16;
+        rumble.connect(rumbleGain);
+        rumbleGain.connect(out);
+        rumble.start();
+        ctrl.stopables.push(rumble);
+
+        function triggerTrumpet() {
+          const t = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const filt = ctx.createBiquadFilter();
+          const g = ctx.createGain();
+          osc.type = `sawtooth`;
+          osc.frequency.setValueAtTime(190, t);
+          osc.frequency.exponentialRampToValueAtTime(360, t + 0.25);
+          osc.frequency.exponentialRampToValueAtTime(160, t + 0.85);
+          filt.type = `lowpass`;
+          filt.frequency.value = 720;
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.2, t + 0.12);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+          osc.connect(filt);
+          filt.connect(g);
+          g.connect(out);
+          osc.start(t);
+          osc.stop(t + 0.92);
+        }
+        triggerTrumpet();
+        ctrl.timers.push(setInterval(triggerTrumpet, 4400));
+      } else if (kind === `peacock`) {
+        function triggerPeacock() {
+          const t = ctx.currentTime;
+          [0, 0.45].forEach(function(off, idx) {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = `triangle`;
+            const f1 = idx === 0 ? 640 : 780;
+            osc.frequency.setValueAtTime(f1, t + off);
+            osc.frequency.exponentialRampToValueAtTime(f1 * 1.32, t + off + 0.16);
+            osc.frequency.exponentialRampToValueAtTime(f1 * 0.88, t + off + 0.36);
+            g.gain.setValueAtTime(0.001, t + off);
+            g.gain.linearRampToValueAtTime(0.18, t + off + 0.04);
+            g.gain.exponentialRampToValueAtTime(0.001, t + off + 0.38);
+            osc.connect(g);
+            g.connect(out);
+            osc.start(t + off);
+            osc.stop(t + off + 0.4);
+          });
+        }
+        triggerPeacock();
+        ctrl.timers.push(setInterval(triggerPeacock, 3600));
+      } else if (kind === `chaththa_chant` || kind === `anuradhapura`) {
+        const root = kind === `chaththa_chant` ? 130.81 : 146.83;
+        const ratios = [1, 1.5, 2, 2.5];
+        ratios.forEach(function(r, idx) {
+          const osc = ctx.createOscillator();
+          osc.type = idx < 2 ? `sine` : `triangle`;
+          osc.frequency.value = root * r;
+          const g = ctx.createGain();
+          g.gain.value = idx === 0 ? 0.16 : 0.06;
+          osc.connect(g);
+          g.connect(out);
+          osc.start();
+          ctrl.stopables.push(osc);
+        });
+        function triggerChantCadence() {
+          const t = ctx.currentTime;
+          const mel = kind === `chaththa_chant` ? [261.6, 293.6, 329.6, 261.6] : [293.6, 329.6, 440, 293.6];
+          mel.forEach(function(f, idx) {
+            const osc = ctx.createOscillator();
+            const filt = ctx.createBiquadFilter();
+            const g = ctx.createGain();
+            osc.type = `triangle`;
+            osc.frequency.value = f;
+            filt.type = `lowpass`;
+            filt.frequency.value = 950;
+            const st = t + idx * 0.65;
+            g.gain.setValueAtTime(0.001, st);
+            g.gain.linearRampToValueAtTime(0.12, st + 0.15);
+            g.gain.exponentialRampToValueAtTime(0.001, st + 0.6);
+            osc.connect(filt);
+            filt.connect(g);
+            g.connect(out);
+            osc.start(st);
+            osc.stop(st + 0.62);
+          });
+        }
+        triggerChantCadence();
+        ctrl.timers.push(setInterval(triggerChantCadence, 3400));
+      } else if (kind === `temple_drums`) {
+        let step = 0;
+        function triggerDrum() {
+          const t = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          const isLow = step % 4 === 0;
+          osc.type = `sine`;
+          osc.frequency.setValueAtTime(isLow ? 96 : 210, t);
+          osc.frequency.exponentialRampToValueAtTime(isLow ? 46 : 125, t + 0.18);
+          g.gain.setValueAtTime(isLow ? 0.34 : 0.18, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          osc.connect(g);
+          g.connect(out);
+          osc.start(t);
+          osc.stop(t + 0.24);
+          step++;
+        }
+        triggerDrum();
+        ctrl.timers.push(setInterval(triggerDrum, 420));
+      } else if (kind === `temple_bell` || kind === `galle_fort`) {
+        function triggerBell() {
+          const t = ctx.currentTime;
+          const partials = kind === `temple_bell` ? [330, 662, 998, 1320] : [293.6, 440, 587.3, 880];
+          partials.forEach(function(freq, idx) {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = `sine`;
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(0.14 / (idx + 1), t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 2.4 - idx * 0.35);
+            osc.connect(g);
+            g.connect(out);
+            osc.start(t);
+            osc.stop(t + 2.5);
+          });
+        }
+        triggerBell();
+        ctrl.timers.push(setInterval(triggerBell, 3600));
+      } else if (kind === `cheap_thrills`) {
+        const chordNotes = [369.99, 440, 554.37, 493.88, 369.99, 440, 659.25, 554.37];
+        let step = 0;
+        function triggerMarimba() {
+          const t = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = `sine`;
+          osc.frequency.value = chordNotes[step % chordNotes.length];
+          g.gain.setValueAtTime(0.22, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          osc.connect(g);
+          g.connect(out);
+          osc.start(t);
+          osc.stop(t + 0.3);
+          if (step % 2 === 0) {
+            const sub = ctx.createOscillator();
+            const sg = ctx.createGain();
+            sub.type = `triangle`;
+            sub.frequency.value = 110;
+            sg.gain.setValueAtTime(0.16, t);
+            sg.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+            sub.connect(sg);
+            sg.connect(out);
+            sub.start(t);
+            sub.stop(t + 0.26);
+          }
+          step++;
+        }
+        triggerMarimba();
+        ctrl.timers.push(setInterval(triggerMarimba, 340));
+      } else if (kind === `seabreeze_gulls`) {
+        const noise = ctx.createBufferSource();
+        noise.buffer = createNoiseBuffer(ctx, 4, `pink`);
+        noise.loop = true;
+        const filt = ctx.createBiquadFilter();
+        filt.type = `bandpass`;
+        filt.frequency.value = 1100;
+        const amp = ctx.createGain();
+        amp.gain.value = 0.12;
+        noise.connect(filt);
+        filt.connect(amp);
+        amp.connect(out);
+        noise.start();
+        ctrl.stopables.push(noise);
+
+        function triggerGull() {
+          const t = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = `sine`;
+          osc.frequency.setValueAtTime(1180, t);
+          osc.frequency.exponentialRampToValueAtTime(840, t + 0.45);
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.1, t + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.48);
+          osc.connect(g);
+          g.connect(out);
+          osc.start(t);
+          osc.stop(t + 0.5);
+        }
+        ctrl.timers.push(setInterval(triggerGull, 4100));
+      } else {
+        // 'Other / Custom Text' deterministic procedural engine
+        const parsed = parseCustomTextFormula(node.customFormula || node.name);
+        const pad1 = ctx.createOscillator();
+        const pad2 = ctx.createOscillator();
+        pad1.type = `sine`;
+        pad2.type = `triangle`;
+        pad1.frequency.value = parsed.baseFreq;
+        pad2.frequency.value = parsed.baseFreq * 1.5;
+
+        const padGain = ctx.createGain();
+        padGain.gain.value = 0.11;
+        pad1.connect(padGain);
+        pad2.connect(padGain);
+        padGain.connect(out);
+        pad1.start();
+        pad2.start();
+        ctrl.stopables.push(pad1, pad2);
+
+        if (parsed.hasWind) {
+          const wind = ctx.createBufferSource();
+          wind.buffer = createNoiseBuffer(ctx, 4, `pink`);
+          wind.loop = true;
+          const wf = ctx.createBiquadFilter();
+          wf.type = `bandpass`;
+          wf.frequency.value = 620;
+          const wg = ctx.createGain();
+          wg.gain.value = 0.14;
+          wind.connect(wf);
+          wf.connect(wg);
+          wg.connect(out);
+          wind.start();
+          ctrl.stopables.push(wind);
+        }
+
+        function triggerCustomPulse() {
+          const t = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = parsed.hasBell ? `sine` : `triangle`;
+          osc.frequency.setValueAtTime(parsed.baseFreq * 2, t);
+          if (parsed.hasPulse) {
+            osc.frequency.exponentialRampToValueAtTime(parsed.baseFreq, t + 0.25);
+          }
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.14, t + 0.04);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+          osc.connect(g);
+          g.connect(out);
+          osc.start(t);
+          osc.stop(t + 0.72);
+        }
+        triggerCustomPulse();
+        ctrl.timers.push(setInterval(triggerCustomPulse, parsed.rateMs));
+      }
+
+      node.isPlaying = true;
+    }
+
+    // =========================================================================
+    // Helper Getters & UI Sync
+    // =========================================================================
+    function getActiveStageDef() {
+      return STAGE_DEFINITIONS.find(function(s) { return s.id === appState.activeStageId; }) || STAGE_DEFINITIONS[0];
+    }
+
+    function getActiveStageNodes() {
+      return appState.stageNodes[appState.activeStageId] || [];
+    }
+
+    function getSelectedNode() {
+      const list = getActiveStageNodes();
+      return list.find(function(n) { return n.id === appState.selectedNodeId; }) || list[0] || null;
+    }
+
+    function getClosestNode() {
+      const list = getActiveStageNodes();
+      if (!list.length) return null;
+      const playing = list.filter(function(n) { return n.isPlaying; });
+      const candidates = playing.length ? playing : list;
+      let best = candidates[0];
+      let bestDist = Infinity;
+      candidates.forEach(function(n) {
+        const m = computeNodeSpatialMetrics(n);
+        if (m.distPx < bestDist) {
+          bestDist = m.distPx;
+          best = n;
+        }
+      });
+      return best;
+    }
+
+    // =========================================================================
+    // Rendering: Theme Cards, Stage Backdrop, Nodes, Inspector, Story Guide
+    // =========================================================================
+    function renderThemeCards() {
+      const grid = document.getElementById('themes-grid');
+      if (!grid) return;
+      grid.innerHTML = ``;
+
+      STAGE_DEFINITIONS.forEach(function(stage) {
+        const list = appState.stageNodes[stage.id] || [];
+        const wrap = document.createElement('div');
+        wrap.className = `theme-card-wrap`;
+
+        const card = document.createElement('button');
+        card.type = `button`;
+        card.className = `theme-card` + (stage.id === appState.activeStageId ? ` is-active` : ``);
+        card.style.setProperty(`--card-accent`, stage.accent);
+        card.setAttribute(`aria-pressed`, stage.id === appState.activeStageId ? `true` : `false`);
+        card.onclick = function() {
+          selectStage(stage.id);
+          scrollToStage();
+        };
+
+        card.innerHTML = `
+          <div class="theme-card-top">
+            <div class="theme-emblem">${ICON_PATHS[stage.icon] || ICON_PATHS.orb}</div>
+            <span class="theme-badge">${stage.tag}</span>
+          </div>
+          <div>
+            <h3>${stage.title}</h3>
+            <p>${stage.summary}</p>
+          </div>
+          <div class="theme-card-foot">
+            <span>${list.length} ${list.length === 1 ? 'Sound Node' : 'Sound Nodes'}</span>
+            <span>Launch Stage →</span>
+          </div>
+        `;
+        wrap.appendChild(card);
+        grid.appendChild(wrap);
+      });
+    }
+
+    function renderStageBackdrop() {
+      const svg = document.getElementById('stage-bg-svg');
+      if (!svg) return;
+      const stage = getActiveStageDef();
+      const accent = stage.accent;
+      let motifs = ``;
+
+      if (stage.id === `sinharaja`) {
+        motifs = `
+          <circle cx="400" cy="260" r="220" stroke="${accent}" stroke-width="1" stroke-dasharray="6 6" fill="none"/>
+          <circle cx="400" cy="260" r="140" stroke="${accent}" stroke-width="1" opacity="0.5" fill="none"/>
+          <path d="M80 460 Q220 320 400 390 T720 440" stroke="${accent}" stroke-width="1.2" fill="none"/>
+        `;
+      } else if (stage.id === `ancient`) {
+        motifs = `
+          <circle cx="400" cy="260" r="210" stroke="${accent}" stroke-width="1" fill="none"/>
+          <path d="M310 380 A90 90 0 0 1 490 380 Z" stroke="${accent}" stroke-width="1.2" fill="none"/>
+          <line x1="400" y1="60" x2="400" y2="460" stroke="${accent}" stroke-width="0.8" stroke-dasharray="4 4"/>
+        `;
+      } else if (stage.id === `galle`) {
+        motifs = `
+          <polygon points="400,60 660,180 610,420 190,420 140,180" stroke="${accent}" stroke-width="1.2" fill="none"/>
+          <circle cx="400" cy="260" r="150" stroke="${accent}" stroke-width="0.9" stroke-dasharray="5 5" fill="none"/>
+        `;
+      } else if (stage.id === `religion`) {
+        motifs = `
+          <circle cx="400" cy="260" r="200" stroke="${accent}" stroke-width="1" fill="none"/>
+          <circle cx="400" cy="260" r="130" stroke="${accent}" stroke-width="1" fill="none"/>
+          <polygon points="400,90 547,345 253,345" stroke="${accent}" stroke-width="1" fill="none"/>
+          <polygon points="400,430 547,175 253,175" stroke="${accent}" stroke-width="1" fill="none"/>
+        `;
+      } else if (stage.id === `ocean`) {
+        motifs = `
+          <path d="M40 160 Q220 110 400 160 T760 160" stroke="${accent}" stroke-width="1.2" fill="none"/>
+          <path d="M40 260 Q220 210 400 260 T760 260" stroke="${accent}" stroke-width="1.2" fill="none"/>
+          <path d="M40 360 Q220 310 400 360 T760 360" stroke="${accent}" stroke-width="1.2" fill="none"/>
+        `;
+      } else {
+        motifs = `
+          <line x1="0" y1="260" x2="800" y2="260" stroke="${accent}" stroke-width="0.8" stroke-dasharray="4 4"/>
+          <line x1="400" y1="0" x2="400" y2="520" stroke="${accent}" stroke-width="0.8" stroke-dasharray="4 4"/>
+          <circle cx="400" cy="260" r="180" stroke="${accent}" stroke-width="1" fill="none"/>
+        `;
+      }
+      svg.innerHTML = motifs;
+    }
+
+    function renderStageNodes() {
+      const layer = document.getElementById('stage-nodes-layer');
+      const emptyBox = document.getElementById('stage-empty-overlay');
+      if (!layer) return;
+
+      const list = getActiveStageNodes();
+      if (emptyBox) {
+        emptyBox.style.display = list.length === 0 ? `grid` : `none`;
+      }
+
+      layer.innerHTML = ``;
+      list.forEach(function(node) {
+        const m = computeNodeSpatialMetrics(node);
+        const el = document.createElement('div');
+        el.className = `sound-node` + (node.id === appState.selectedNodeId ? ` is-selected` : ``) + (node.isPlaying ? ` is-playing` : ``);
+        el.style.left = (node.nx * 100) + `%`;
+        el.style.top = (node.ny * 100) + `%`;
+        el.style.setProperty(`--node-color`, node.color || `#63c7d6`);
+        el.tabIndex = 0;
+        el.setAttribute(`role`, `button`);
+        el.setAttribute(`aria-label`, `${node.name}, Left ${m.leftPct}%, Right ${m.rightPct}%, ${m.distPx} pixels from explorer. Drag or use arrow keys to move.`);
+        el.dataset.nodeId = node.id;
+
+        const customImg = runtimeCustomImages[node.id];
+        const iconHtml = customImg
+          ? `<img src="${customImg}" class="node-custom-img" alt="">`
+          : (ICON_PATHS[node.icon] || ICON_PATHS.orb);
+
+        el.innerHTML = `
+          <div class="node-medallion">${iconHtml}</div>
+          <div class="node-label-pill">${escapeHtml(node.name)}</div>
+          <div class="node-telemetry-pill">L ${m.leftPct}% | R ${m.rightPct}% • ${m.distPx} px</div>
+        `;
+
+        el.addEventListener(`pointerdown`, function(evt) {
+          startNodeDrag(evt, node.id);
+        });
+        el.addEventListener(`dblclick`, function() {
+          selectNode(node.id);
+          toggleNodePlay(node.id);
+        });
+        el.addEventListener(`keydown`, function(evt) {
+          handleNodeKeydown(evt, node.id);
+        });
+
+        layer.appendChild(el);
+      });
+
+      renderStoryGuide();
+      renderInspector();
+      renderNodeRoster();
+      updateHeroStats();
+    }
+
+    function updateNodeElementPositions(node) {
+      const layer = document.getElementById('stage-nodes-layer');
+      if (!layer) return;
+      const el = layer.querySelector(`[data-node-id="${node.id}"]`);
+      if (!el) return;
+      const m = computeNodeSpatialMetrics(node);
+      el.style.left = (node.nx * 100) + `%`;
+      el.style.top = (node.ny * 100) + `%`;
+      const tel = el.querySelector(`.node-telemetry-pill`);
+      if (tel) tel.textContent = `L ${m.leftPct}% | R ${m.rightPct}% • ${m.distPx} px`;
+
+      if (node.id === appState.selectedNodeId) {
+        updateSelectedTelemetryDisplay(node, m);
+      }
+      renderStoryGuide();
+    }
+
+    function renderStoryGuide() {
+      const closest = getClosestNode();
+      const badgeEl = document.getElementById('story-badge');
+      const telEl = document.getElementById('story-telemetry');
+      const textEl = document.getElementById('story-subtitle-text');
+      if (!badgeEl || !telEl || !textEl) return;
+
+      if (!closest) {
+        badgeEl.textContent = `Custom Open Stage`;
+        telEl.textContent = `0 nodes placed`;
+        textEl.textContent = `Open Creator Mode to place procedural soundscapes, custom text formulas, or uploaded .mp3/.wav tracks onto the 3D stage.`;
+        return;
+      }
+      const m = computeNodeSpatialMetrics(closest);
+      badgeEl.textContent = (closest.isPlaying ? `Closest Active • ` : `Closest Node • `) + closest.name;
+      telEl.textContent = `L ${m.leftPct}% | R ${m.rightPct}% • ${m.distPx} px • Elev ${((closest.elevation || 0) / 10).toFixed(1)}m`;
+      textEl.textContent = closest.story || `Spatial sound source drifting in 3D space around the central Explorer.`;
+    }
+
+    function updateSelectedTelemetryDisplay(node, m) {
+      const coordsEl = document.getElementById('sel-node-coords');
+      const lPctEl = document.getElementById('meter-left-pct');
+      const rPctEl = document.getElementById('meter-right-pct');
+      const lBar = document.getElementById('meter-left-bar');
+      const rBar = document.getElementById('meter-right-bar');
+
+      if (coordsEl) coordsEl.textContent = `L ${m.leftPct}% | R ${m.rightPct}% • ${m.distPx} px`;
+      if (lPctEl) lPctEl.textContent = `${m.leftPct}%`;
+      if (rPctEl) rPctEl.textContent = `${m.rightPct}%`;
+      if (lBar) lBar.style.width = `${m.leftPct}%`;
+      if (rBar) rBar.style.width = `${m.rightPct}%`;
+    }
+
+    function renderInspector() {
+      const node = getSelectedNode();
+      const emptyEl = document.getElementById('selected-node-empty');
+      const ctrlEl = document.getElementById('selected-node-controls');
+      const badgeEl = document.getElementById('selected-routing-badge');
+      if (!emptyEl || !ctrlEl) return;
+
+      if (!node) {
+        emptyEl.style.display = `block`;
+        ctrlEl.style.display = `none`;
+        if (badgeEl) badgeEl.textContent = `No Selection`;
+        return;
+      }
+
+      emptyEl.style.display = `none`;
+      ctrlEl.style.display = `grid`;
+
+      const m = computeNodeSpatialMetrics(node);
+      const nameEl = document.getElementById('sel-node-name');
+      const playBtn = document.getElementById('sel-play-btn');
+      const volSlider = document.getElementById('sel-vol-slider');
+      const volOut = document.getElementById('sel-vol-readout');
+      const elevSlider = document.getElementById('sel-elev-slider');
+      const elevOut = document.getElementById('sel-elev-readout');
+      const revertBtn = document.getElementById('btn-revert-synth');
+      const attachStatus = document.getElementById('attach-status');
+
+      if (nameEl) nameEl.textContent = node.name;
+      if (playBtn) playBtn.textContent = node.isPlaying ? `Pause` : `Play`;
+      if (volSlider) volSlider.value = node.volume ?? 85;
+      if (volOut) volOut.textContent = `${node.volume ?? 85}%`;
+      if (elevSlider) elevSlider.value = node.elevation ?? 0;
+      if (elevOut) elevOut.textContent = `${((node.elevation ?? 0) / 10).toFixed(1)} m`;
+
+      const attached = runtimeAudioFiles[node.id];
+      if (attached) {
+        if (badgeEl) badgeEl.textContent = `Direct File → ${appState.spatialMode}`;
+        if (revertBtn) revertBtn.style.display = `inline-flex`;
+        if (attachStatus) attachStatus.textContent = `Direct 3D Routing: ${attached.fileName}`;
+      } else {
+        if (badgeEl) badgeEl.textContent = `Procedural → ${appState.spatialMode}`;
+        if (revertBtn) revertBtn.style.display = `none`;
+        if (attachStatus) attachStatus.textContent = node.customFormula ? `Formula: "${node.customFormula}"` : ``;
+      }
+
+      updateSelectedTelemetryDisplay(node, m);
+    }
+
+    function renderNodeRoster() {
+      const roster = document.getElementById('node-roster-list');
+      const countEl = document.getElementById('roster-count');
+      if (!roster) return;
+      const list = getActiveStageNodes();
+      if (countEl) countEl.textContent = String(list.length);
+      roster.innerHTML = ``;
+
+      if (!list.length) {
+        roster.innerHTML = `<div style="color: var(--on-surface-variant); font-size: 0.85rem; padding: var(--space-xs);">No nodes in this stage yet.</div>`;
+        return;
+      }
+
+      list.forEach(function(n) {
+        const m = computeNodeSpatialMetrics(n);
+        const row = document.createElement('div');
+        row.className = `node-list-item` + (n.id === appState.selectedNodeId ? ` is-selected` : ``);
+        row.onclick = function() { selectNode(n.id); };
+
+        const dot = document.createElement('span');
+        dot.className = `node-dot`;
+        dot.style.background = n.color || `#63c7d6`;
+
+        const info = document.createElement('div');
+        info.innerHTML = `
+          <div class="node-list-name">${escapeHtml(n.name)}</div>
+          <div class="node-list-sub">L ${m.leftPct}% | R ${m.rightPct}% • ${m.distPx} px</div>
+        `;
+
+        const btn = document.createElement('button');
+        btn.type = `button`;
+        btn.className = `btn btn-sm` + (n.isPlaying ? ` btn-primary` : ``);
+        btn.textContent = n.isPlaying ? `Playing` : `Play`;
+        btn.onclick = function(e) {
+          e.stopPropagation();
+          selectNode(n.id);
+          toggleNodePlay(n.id);
+        };
+
+        row.appendChild(dot);
+        row.appendChild(info);
+        row.appendChild(btn);
+        roster.appendChild(row);
+      });
+    }
+
+    function updateHeroStats() {
+      const list = getActiveStageNodes();
+      const playingCount = list.filter(function(n) { return n.isPlaying; }).length;
+      const el = document.getElementById('hero-active-count');
+      if (el) el.textContent = `${playingCount} Playing`;
+
+      const playAllBtn = document.getElementById('btn-play-all');
+      if (playAllBtn) {
+        const allPlaying = list.length > 0 && playingCount === list.length;
+        playAllBtn.innerHTML = allPlaying
+          ? `<i data-lucide="pause" width="16" height="16" aria-hidden="true"></i> Pause All`
+          : `<i data-lucide="play" width="16" height="16" aria-hidden="true"></i> Play All Nodes`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+
+    // =========================================================================
+    // Stage & Node Interaction Handlers (Hoisted function declarations)
+    // =========================================================================
+    function scrollToStage() {
+      const sec = document.getElementById('workspace-section');
+      if (sec) sec.scrollIntoView({ behavior: `smooth`, block: `start` });
+    }
+
+    function selectStage(stageId) {
+      if (!STAGE_DEFINITIONS.some(function(s) { return s.id === stageId; })) return;
+      stopAllStageAudio();
+      appState.activeStageId = stageId;
+      const nodes = getActiveStageNodes();
+      appState.selectedNodeId = nodes.length ? nodes[0].id : null;
+
+      const selectEl = document.getElementById('stage-switcher-select');
+      if (selectEl) selectEl.value = stageId;
+
+      renderThemeCards();
+      renderStageBackdrop();
+      renderStageNodes();
+      savePersistedState();
+    }
+
+    function selectNode(nodeId) {
+      appState.selectedNodeId = nodeId;
+      const layer = document.getElementById('stage-nodes-layer');
+      if (layer) {
+        layer.querySelectorAll(`.sound-node`).forEach(function(el) {
+          el.classList.toggle(`is-selected`, el.dataset.nodeId === nodeId);
+        });
+      }
+      renderInspector();
+      renderNodeRoster();
+    }
+
+    function toggleNodePlay(nodeId) {
+      const list = getActiveStageNodes();
+      const node = list.find(function(n) { return n.id === nodeId; });
+      if (!node) return;
+      if (node.isPlaying) {
+        stopNodeAudio(node.id);
+        node.isPlaying = false;
+      } else {
+        startNodeAudio(node);
+      }
+      renderStageNodes();
+    }
+
+    function toggleSelectedPlay() {
+      const node = getSelectedNode();
+      if (node) toggleNodePlay(node.id);
+    }
+
+    function togglePlayAll() {
+      const list = getActiveStageNodes();
+      if (!list.length) return;
+      const anyStopped = list.some(function(n) { return !n.isPlaying; });
+      if (anyStopped) {
+        list.forEach(function(n) {
+          if (!n.isPlaying) startNodeAudio(n);
+        });
+      } else {
+        stopAllStageAudio();
+      }
+      renderStageNodes();
+    }
+
+    function setSpatialMode(mode) {
+      appState.spatialMode = mode === `stereo` ? `stereo` : `HRTF`;
+      const btnHrtf = document.getElementById('mode-btn-hrtf');
+      const btnStereo = document.getElementById('mode-btn-stereo');
+      const hudPill = document.getElementById('hud-mode-pill');
+      if (btnHrtf) btnHrtf.classList.toggle(`is-active`, appState.spatialMode === `HRTF`);
+      if (btnStereo) btnStereo.classList.toggle(`is-active`, appState.spatialMode === `stereo`);
+      if (hudPill) hudPill.textContent = appState.spatialMode === `HRTF` ? `HRTF BINAURAL 3D` : `STEREO 2-CH COMPARE`;
+
+      getActiveStageNodes().forEach(function(n) {
+        updateAudioEngineSpatial(n);
+      });
+      renderInspector();
+      savePersistedState();
+    }
+
+    function setMasterVolume(val) {
+      appState.masterVolume = Number(val);
+      const lbl = document.getElementById('master-vol-label');
+      if (lbl) lbl.textContent = `${appState.masterVolume}%`;
+      if (masterGain && audioCtx) {
+        masterGain.gain.setTargetAtTime((appState.masterVolume / 100) * 0.85, audioCtx.currentTime, 0.03);
+      }
+      savePersistedState();
+    }
+
+    function updateSelectedVolume(val) {
+      const node = getSelectedNode();
+      if (!node) return;
+      node.volume = Number(val);
+      const out = document.getElementById('sel-vol-readout');
+      if (out) out.textContent = `${node.volume}%`;
+      updateAudioEngineSpatial(node);
+      savePersistedState();
+    }
+
+    function updateSelectedElevation(val) {
+      const node = getSelectedNode();
+      if (!node) return;
+      node.elevation = Number(val);
+      const out = document.getElementById('sel-elev-readout');
+      if (out) out.textContent = `${(node.elevation / 10).toFixed(1)} m`;
+      updateAudioEngineSpatial(node);
+      renderStoryGuide();
+      savePersistedState();
+    }
+
+    function deleteSelectedNode() {
+      const node = getSelectedNode();
+      if (!node) return;
+      stopNodeAudio(node.id);
+      delete runtimeAudioFiles[node.id];
+      delete runtimeCustomImages[node.id];
+      const list = getActiveStageNodes().filter(function(n) { return n.id !== node.id; });
+      appState.stageNodes[appState.activeStageId] = list;
+      appState.selectedNodeId = list.length ? list[0].id : null;
+      renderThemeCards();
+      renderStageNodes();
+      savePersistedState();
+    }
+
+    // Pointer Dragging on Spatial Stage
+    function startNodeDrag(evt, nodeId) {
+      evt.preventDefault();
+      selectNode(nodeId);
+      const stageEl = document.getElementById('spatial-stage');
+      if (!stageEl) return;
+      const rect = stageEl.getBoundingClientRect();
+      dragState = { nodeId: nodeId, rect: rect };
+
+      function onMove(moveEvt) {
+        if (!dragState) return;
+        const list = getActiveStageNodes();
+        const node = list.find(function(n) { return n.id === dragState.nodeId; });
+        if (!node) return;
+        const r = stageEl.getBoundingClientRect();
+        node.nx = Math.max(0.06, Math.min(0.94, (moveEvt.clientX - r.left) / r.width));
+        node.ny = Math.max(0.08, Math.min(0.92, (moveEvt.clientY - r.top) / r.height));
+        updateAudioEngineSpatial(node);
+        updateNodeElementPositions(node);
+      }
+
+      function onUp() {
+        window.removeEventListener(`pointermove`, onMove);
+        window.removeEventListener(`pointerup`, onUp);
+        if (dragState) {
+          dragState = null;
+          renderNodeRoster();
+          savePersistedState();
+        }
+      }
+
+      window.addEventListener(`pointermove`, onMove);
+      window.addEventListener(`pointerup`, onUp);
+    }
+
+    function handleNodeKeydown(evt, nodeId) {
+      const list = getActiveStageNodes();
+      const node = list.find(function(n) { return n.id === nodeId; });
+      if (!node) return;
+      const step = evt.shiftKey ? 0.05 : 0.02;
+      let moved = false;
+      if (evt.key === `ArrowLeft`) { node.nx = Math.max(0.06, node.nx - step); moved = true; }
+      else if (evt.key === `ArrowRight`) { node.nx = Math.min(0.94, node.nx + step); moved = true; }
+      else if (evt.key === `ArrowUp`) { node.ny = Math.max(0.08, node.ny - step); moved = true; }
+      else if (evt.key === `ArrowDown`) { node.ny = Math.min(0.92, node.ny + step); moved = true; }
+      else if (evt.key === `Enter` || evt.key === ` `) {
+        evt.preventDefault();
+        toggleNodePlay(nodeId);
+        return;
+      }
+      if (moved) {
+        evt.preventDefault();
+        selectNode(nodeId);
+        updateAudioEngineSpatial(node);
+        updateNodeElementPositions(node);
+        renderNodeRoster();
+        savePersistedState();
+      }
+    }
+
+    // =========================================================================
+    // Direct .MP3 / .WAV File Attachment onto Existing Node
+    // =========================================================================
+    function triggerNodeFileAttach() {
+      const input = document.getElementById('attach-node-audio-input');
+      if (input) {
+        input.value = ``;
+        input.click();
+      }
+    }
+
+    function triggerNodeFileAttachForClosest() {
+      const closest = getClosestNode();
+      if (closest) selectNode(closest.id);
+      triggerNodeFileAttach();
+    }
+
+    async function decodeAttachedAudioFile(file) {
+      const ctx = ensureAudioContext();
+      try {
+        const arrBuf = await file.arrayBuffer();
+        const decoded = await ctx.decodeAudioData(arrBuf);
+        return { buffer: decoded, mediaUrl: null, fileName: file.name };
+      } catch (err) {
+        // Fallback to HTMLAudioElement + MediaElementAudioSourceNode for codecs like .aac/.mpeg
+        const url = URL.createObjectURL(file);
+        return { buffer: null, mediaUrl: url, fileName: file.name };
+      }
+    }
+
+    async function handleAttachAudioFile(files) {
+      if (!files || !files.length) return;
+      const node = getSelectedNode();
+      if (!node) return;
+      const status = document.getElementById('attach-status');
+      if (status) status.textContent = `Decoding ${files[0].name}…`;
+
+      const decodedObj = await decodeAttachedAudioFile(files[0]);
+      runtimeAudioFiles[node.id] = decodedObj;
+      node.sourceType = `uploaded`;
+      startNodeAudio(node);
+      renderStageNodes();
+    }
+
+    function revertSelectedToProcedural() {
+      const node = getSelectedNode();
+      if (!node) return;
+      delete runtimeAudioFiles[node.id];
+      node.sourceType = `procedural`;
+      if (node.isPlaying) startNodeAudio(node);
+      renderInspector();
+    }
+
+    // =========================================================================
+    // 3D Audio Recording & Stereo .WAV Export
+    // =========================================================================
+    function toggleRecording() {
+      if (!isRecording) {
+        ensureAudioContext();
+        // Auto-start nodes if nothing is currently playing so recording captures sound immediately
+        const list = getActiveStageNodes();
+        if (list.length && !list.some(function(n) { return n.isPlaying; })) {
+          list.forEach(function(n) { startNodeAudio(n); });
+          renderStageNodes();
+        }
+        recLeftChunks = [];
+        recRightChunks = [];
+        recStartTime = Date.now();
+        isRecording = true;
+
+        const badge = document.getElementById('rec-badge');
+        const btnPanel = document.getElementById('btn-rec-panel');
+        const btnTop = document.getElementById('btn-record-toggle');
+        const msg = document.getElementById('rec-status-msg');
+        if (badge) { badge.textContent = `REC`; badge.classList.add(`is-recording`); }
+        if (btnPanel) btnPanel.textContent = `Stop Recording`;
+        if (btnTop) btnTop.classList.add(`btn-danger`);
+        if (btnTop) btnTop.innerHTML = `<i data-lucide="square" width="16" height="16" aria-hidden="true"></i> Stop Recording`;
+        if (msg) msg.textContent = `Capturing live binaural 3D mix… drag nodes to hear movement in export.`;
+        if (window.lucide) window.lucide.createIcons();
+
+        recTimerInterval = setInterval(function() {
+          const sec = Math.floor((Date.now() - recStartTime) / 1000);
+          const mm = String(Math.floor(sec / 60)).padStart(2, `0`);
+          const ss = String(sec % 60).padStart(2, `0`);
+          const timerEl = document.getElementById('rec-timer');
+          if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+        }, 250);
+      } else {
+        isRecording = false;
+        clearInterval(recTimerInterval);
+
+        const badge = document.getElementById('rec-badge');
+        const btnPanel = document.getElementById('btn-rec-panel');
+        const btnTop = document.getElementById('btn-record-toggle');
+        const btnDl = document.getElementById('btn-download-wav');
+        const preview = document.getElementById('rec-preview-audio');
+        const msg = document.getElementById('rec-status-msg');
+
+        if (badge) { badge.textContent = `READY`; badge.classList.remove(`is-recording`); }
+        if (btnPanel) btnPanel.textContent = `Record Again`;
+        if (btnTop) {
+          btnTop.classList.remove(`btn-danger`);
+          btnTop.innerHTML = `<i data-lucide="circle-dot" width="16" height="16" aria-hidden="true"></i> Record 3D Mix`;
+        }
+        if (window.lucide) window.lucide.createIcons();
+
+        if (recLeftChunks.length > 0 && audioCtx) {
+          lastRecordedWavBlob = encodeStereoWavBlob(recLeftChunks, recRightChunks, audioCtx.sampleRate);
+          if (lastRecordedWavUrl) URL.revokeObjectURL(lastRecordedWavUrl);
+          lastRecordedWavUrl = URL.createObjectURL(lastRecordedWavBlob);
+          if (preview) {
+            preview.src = lastRecordedWavUrl;
+            preview.style.display = `block`;
+          }
+          if (btnDl) btnDl.disabled = false;
+          const kb = Math.round(lastRecordedWavBlob.size / 1024);
+          if (msg) msg.textContent = `3D Stereo WAV ready (${kb} KB). Preview or download below.`;
+        } else {
+          if (msg) msg.textContent = `No audio frames captured.`;
+        }
+      }
+    }
+
+    function encodeStereoWavBlob(leftChunks, rightChunks, sampleRate) {
+      let totalLen = 0;
+      leftChunks.forEach(function(c) { totalLen += c.length; });
+      const buffer = new ArrayBuffer(44 + totalLen * 4);
+      const view = new DataView(buffer);
+
+      function writeStr(offset, s) {
+        for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+      }
+
+      writeStr(0, `RIFF`);
+      view.setUint32(4, 36 + totalLen * 4, true);
+      writeStr(8, `WAVE`);
+      writeStr(12, `fmt `);
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 2, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 4, true);
+      view.setUint16(32, 4, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, `data`);
+      view.setUint32(40, totalLen * 4, true);
+
+      let offset = 44;
+      for (let c = 0; c < leftChunks.length; c++) {
+        const lArr = leftChunks[c];
+        const rArr = rightChunks[c];
+        for (let i = 0; i < lArr.length; i++) {
+          const sL = Math.max(-1, Math.min(1, lArr[i]));
+          const sR = Math.max(-1, Math.min(1, rArr[i]));
+          view.setInt16(offset, sL < 0 ? sL * 0x8000 : sL * 0x7fff, true);
+          view.setInt16(offset + 2, sR < 0 ? sR * 0x8000 : sR * 0x7fff, true);
+          offset += 4;
+        }
+      }
+      return new Blob([view], { type: `audio/wav` });
+    }
+
+    function downloadRecordedWav() {
+      if (!lastRecordedWavBlob || !lastRecordedWavUrl) return;
+      const stageSlug = appState.activeStageId;
+      const link = document.createElement('a');
+      link.href = lastRecordedWavUrl;
+      link.download = `AetherSpace-${stageSlug}-3D-Mix.wav`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // =========================================================================
+    // Creator Mode Modal, Procedural Custom Text, Hex Picker, Image Upload/Paste
+    // =========================================================================
+    function buildCreatorIconGrid() {
+      const grid = document.getElementById('creator-icon-grid');
+      if (!grid) return;
+      grid.innerHTML = ``;
+
+      Object.keys(ICON_PATHS).forEach(function(key) {
+        const btn = document.createElement('button');
+        btn.type = `button`;
+        btn.className = `icon-choice-btn` + (creatorSelectedIconId === key && !creatorTempIconImg ? ` is-selected` : ``);
+        btn.title = key;
+        btn.innerHTML = ICON_PATHS[key];
+        btn.onclick = function() {
+          creatorSelectedIconId = key;
+          creatorTempIconImg = null;
+          const prev = document.getElementById('creator-paste-preview');
+          if (prev) prev.style.display = `none`;
+          buildCreatorIconGrid();
+        };
+        grid.appendChild(btn);
+      });
+
+      // '+' Button for uploading custom image icon
+      const addBtn = document.createElement('button');
+      addBtn.type = `button`;
+      addBtn.className = `icon-choice-btn` + (creatorTempIconImg ? ` is-selected` : ``);
+      addBtn.title = `Upload custom circular image icon`;
+      addBtn.setAttribute(`aria-label`, `Upload custom image icon`);
+      addBtn.innerHTML = creatorTempIconImg
+        ? `<img src="${creatorTempIconImg}" class="node-custom-img" alt="Uploaded icon">`
+        : `<i data-lucide="plus" width="20" height="20" aria-hidden="true"></i>`;
+      addBtn.onclick = function() {
+        const up = document.getElementById('creator-icon-upload');
+        if (up) {
+          up.value = ``;
+          up.click();
+        }
+      };
+      grid.appendChild(addBtn);
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function openCreatorModal(forcedStageId) {
+      const modal = document.getElementById('creator-modal');
+      const stageSel = document.getElementById('creator-target-stage');
+      if (stageSel) stageSel.value = forcedStageId || appState.activeStageId;
+      creatorTempAudio = null;
+      const err = document.getElementById('creator-form-error');
+      const aStat = document.getElementById('creator-audio-status');
+      const pStat = document.getElementById('creator-preview-status');
+      if (err) err.textContent = ``;
+      if (aStat) aStat.textContent = ``;
+      if (pStat) pStat.textContent = ``;
+      buildCreatorIconGrid();
+      if (modal) modal.classList.add(`is-open`);
+    }
+
+    function closeCreatorModal() {
+      const modal = document.getElementById('creator-modal');
+      if (modal) modal.classList.remove(`is-open`);
+      stopNodeAudio(`__creator_preview__`);
+    }
+
+    function toggleCreatorSourceMode(mode) {
+      const procCat = document.getElementById('creator-proc-cat-wrap');
+      const customWrap = document.getElementById('creator-custom-text-wrap');
+      const uploadWrap = document.getElementById('creator-upload-wrap');
+      const catSel = document.getElementById('creator-proc-category');
+      if (mode === `upload`) {
+        if (procCat) procCat.style.display = `none`;
+        if (customWrap) customWrap.style.display = `none`;
+        if (uploadWrap) uploadWrap.style.display = `grid`;
+      } else {
+        if (procCat) procCat.style.display = `grid`;
+        if (uploadWrap) uploadWrap.style.display = `none`;
+        if (customWrap && catSel) customWrap.style.display = catSel.value === `custom_text` ? `grid` : `none`;
+      }
+    }
+
+    function toggleCustomTextField(cat) {
+      const customWrap = document.getElementById('creator-custom-text-wrap');
+      if (customWrap) customWrap.style.display = cat === `custom_text` ? `grid` : `none`;
+    }
+
+    function previewCreatorProcedural() {
+      const formulaInput = document.getElementById('creator-custom-formula');
+      const status = document.getElementById('creator-preview-status');
+      const formula = formulaInput ? formulaInput.value.trim() : `432Hz shimmer`;
+      const parsed = parseCustomTextFormula(formula);
+      if (status) {
+        status.textContent = `Synthesising ${parsed.baseFreq} Hz root • Pulse ${parsed.rateMs} ms`;
+      }
+      const previewNode = {
+        id: `__creator_preview__`,
+        name: `Preview`,
+        nx: 0.5,
+        ny: 0.3,
+        elevation: 0,
+        volume: 85,
+        synthType: `custom_text`,
+        customFormula: formula
+      };
+      startNodeAudio(previewNode);
+      setTimeout(function() { stopNodeAudio(`__creator_preview__`); }, 2200);
+    }
+
+    async function handleCreatorAudioSelected(files) {
+      if (!files || !files.length) return;
+      const status = document.getElementById('creator-audio-status');
+      if (status) status.textContent = `Decoding ${files[0].name} for direct PannerNode routing…`;
+      creatorTempAudio = await decodeAttachedAudioFile(files[0]);
+      if (status) status.textContent = `Ready: ${files[0].name} (Direct 3D HRTF Spatial Routing)`;
+    }
+
+    // Bidirectional Hex & Swatch Sync
+    function syncColorFromSwatch(hex) {
+      const hexInput = document.getElementById('creator-hex-input');
+      if (hexInput) hexInput.value = hex;
+    }
+
+    function syncColorFromHex(val) {
+      const swatch = document.getElementById('creator-color-swatch');
+      if (/^#[0-9A-Fa-f]{6}$/.test(val) && swatch) {
+        swatch.value = val;
+      }
+    }
+
+    function updateCreatorElevReadout(val) {
+      const lbl = document.getElementById('creator-elev-val');
+      if (lbl) lbl.textContent = `${(Number(val) / 10).toFixed(1)} m`;
+    }
+
+    // Convert uploaded or pasted image into circular masked 128x128 icon
+    function processImageToCircularIcon(fileOrBlob) {
+      const status = document.getElementById('creator-icon-status');
+      const preview = document.getElementById('creator-paste-preview');
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const size = 128;
+          const cvs = document.createElement('canvas');
+          cvs.width = size;
+          cvs.height = size;
+          const c = cvs.getContext('2d');
+          c.beginPath();
+          c.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          c.closePath();
+          c.clip();
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          c.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          creatorTempIconImg = cvs.toDataURL(`image/png`);
+          if (preview) {
+            preview.src = creatorTempIconImg;
+            preview.style.display = `block`;
+          }
+          if (status) status.textContent = `Circular masked custom icon applied.`;
+          buildCreatorIconGrid();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(fileOrBlob);
+    }
+
+    function handleCreatorIconUpload(files) {
+      if (files && files.length) {
+        processImageToCircularIcon(files[0]);
+      }
+    }
+
+    function handleCreatorSubmit(evt) {
+      evt.preventDefault();
+      const errEl = document.getElementById('creator-form-error');
+      const targetStage = document.getElementById('creator-target-stage').value;
+      const name = document.getElementById('creator-node-name').value.trim();
+      const story = document.getElementById('creator-node-story').value.trim();
+      const sourceMode = document.getElementById('creator-source-mode').value;
+      const procCat = document.getElementById('creator-proc-category').value;
+      const formula = document.getElementById('creator-custom-formula').value.trim();
+      const hex = document.getElementById('creator-hex-input').value.trim();
+      const elev = Number(document.getElementById('creator-elev-input').value);
+
+      if (!name) {
+        if (errEl) errEl.textContent = `Please provide a node label.`;
+        return;
+      }
+      if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        if (errEl) errEl.textContent = `Please enter a valid 6-digit hex colour such as #63c7d6.`;
+        return;
+      }
+      if (sourceMode === `upload` && !creatorTempAudio) {
+        if (errEl) errEl.textContent = `Please choose an .mp3 or .wav file, or switch to Procedural Web Audio Generator.`;
+        return;
+      }
+
+      const existingCount = (appState.stageNodes[targetStage] || []).length;
+      const angle = (existingCount * 1.45) + 0.6;
+      const newId = `node-${Date.now()}`;
+      const newNode = {
+        id: newId,
+        name: name,
+        icon: creatorSelectedIconId || `orb`,
+        color: hex,
+        nx: Math.max(0.14, Math.min(0.86, 0.5 + Math.cos(angle) * 0.28)),
+        ny: Math.max(0.16, Math.min(0.84, 0.5 + Math.sin(angle) * 0.26)),
+        elevation: elev,
+        volume: 85,
+        synthType: sourceMode === `procedural` ? procCat : `uploaded`,
+        customFormula: procCat === `custom_text` ? formula : ``,
+        story: story || `Custom 3D spatial sound node.`,
+        isPlaying: false,
+        sourceType: sourceMode
+      };
+
+      if (creatorTempAudio) runtimeAudioFiles[newId] = creatorTempAudio;
+      if (creatorTempIconImg) runtimeCustomImages[newId] = creatorTempIconImg;
+
+      if (!appState.stageNodes[targetStage]) appState.stageNodes[targetStage] = [];
+      appState.stageNodes[targetStage].push(newNode);
+
+      closeCreatorModal();
+      selectStage(targetStage);
+      selectNode(newId);
+      startNodeAudio(newNode);
+      renderStageNodes();
+      savePersistedState();
+      scrollToStage();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, `&amp;`)
+        .replace(/</g, `&lt;`)
+        .replace(/>/g, `&gt;`)
+        .replace(/"/g, `&quot;`);
+    }
+
+    // =========================================================================
+    // Canvas Visualisers: Hero 3D Lattice & Stage Spatial Sound Cones
+    // =========================================================================
+    function startHero3DCanvas() {
+      const canvas = document.getElementById('hero-3d-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let t = 0;
+
+      const particles = [];
+      for (let i = 0; i < 64; i++) {
+        const phi = Math.acos(1 - 2 * (i + 0.5) / 64);
+        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+        particles.push({ phi: phi, theta: theta, isGold: i % 5 === 0 });
+      }
+
+      function drawHero() {
+        const w = canvas.clientWidth || 1200;
+        const h = canvas.clientHeight || 360;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        ctx.clearRect(0, 0, w, h);
+
+        const cx = w * 0.74;
+        const cy = h * 0.52;
+        const radius = Math.min(w, h) * 0.48;
+
+        // Draw subtle 3D latitude/longitude acoustic rings
+        for (let rIdx = 0; rIdx < 3; rIdx++) {
+          ctx.beginPath();
+          const tilt = 0.35 + rIdx * 0.4;
+          for (let a = 0; a <= 64; a++) {
+            const ang = (a / 64) * Math.PI * 2;
+            const x3 = Math.cos(ang) * radius * 0.9;
+            const y3 = Math.sin(ang) * radius * 0.9 * Math.sin(tilt);
+            const z3 = Math.sin(ang) * radius * 0.9 * Math.cos(tilt);
+            const rotX = x3 * Math.cos(t * 0.35) - z3 * Math.sin(t * 0.35);
+            const rotZ = x3 * Math.sin(t * 0.35) + z3 * Math.cos(t * 0.35);
+            const scale = 520 / (520 + rotZ);
+            const px = cx + rotX * scale;
+            const py = cy + y3 * scale;
+            if (a === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = rIdx === 1 ? `rgba(232, 185, 84, 0.22)` : `rgba(99, 199, 214, 0.2)`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        // Draw 3D orbiting sound particles
+        particles.forEach(function(p) {
+          const x = Math.sin(p.phi) * Math.cos(p.theta + t * 0.45) * radius;
+          const y = Math.cos(p.phi) * radius * 0.85;
+          const z = Math.sin(p.phi) * Math.sin(p.theta + t * 0.45) * radius;
+          const scale = 520 / (520 + z);
+          const px = cx + x * scale;
+          const py = cy + y * scale;
+          const alpha = Math.max(0.15, Math.min(0.9, (scale - 0.55) * 1.4));
+          ctx.beginPath();
+          ctx.arc(px, py, p.isGold ? 2.8 * scale : 2 * scale, 0, Math.PI * 2);
+          ctx.fillStyle = p.isGold ? `rgba(232, 185, 84, ${alpha})` : `rgba(99, 199, 214, ${alpha})`;
+          ctx.fill();
+        });
+
+        t += 0.012;
+        heroAnimId = requestAnimationFrame(drawHero);
+      }
+
+      if (heroAnimId) cancelAnimationFrame(heroAnimId);
+      drawHero();
+    }
+
+    function startStageFieldCanvas() {
+      const canvas = document.getElementById('stage-field-canvas');
+      const stageEl = document.getElementById('spatial-stage');
+      if (!canvas || !stageEl) return;
+      const ctx = canvas.getContext('2d');
+      let phase = 0;
+
+      function drawField() {
+        const w = stageEl.clientWidth || 720;
+        const h = stageEl.clientHeight || 510;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        ctx.clearRect(0, 0, w, h);
+
+        const lx = w * 0.5;
+        const ly = h * 0.5;
+
+        // Subtle distance range rings around listener
+        [0.18, 0.34, 0.5].forEach(function(frac) {
+          ctx.beginPath();
+          ctx.arc(lx, ly, Math.min(w, h) * frac, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(99, 199, 214, 0.09)`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        const list = getActiveStageNodes();
+        list.forEach(function(node) {
+          const nx = node.nx * w;
+          const ny = node.ny * h;
+          const color = node.color || `#63c7d6`;
+
+          // Sound field heatmap & directional cone pointing toward Explorer
+          const grad = ctx.createRadialGradient(nx, ny, 8, nx, ny, node.isPlaying ? 130 : 75);
+          grad.addColorStop(0, hexToRgba(color, node.isPlaying ? 0.24 : 0.1));
+          grad.addColorStop(1, hexToRgba(color, 0));
+          ctx.beginPath();
+          ctx.arc(nx, ny, node.isPlaying ? 130 : 75, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          // Vector line from node to listener
+          ctx.beginPath();
+          ctx.moveTo(nx, ny);
+          ctx.lineTo(lx, ly);
+          ctx.strokeStyle = hexToRgba(color, node.isPlaying ? 0.45 : 0.16);
+          ctx.setLineDash(node.isPlaying ? [6, 5] : [3, 6]);
+          ctx.lineDashOffset = node.isPlaying ? -phase * 18 : 0;
+          ctx.lineWidth = node.id === appState.selectedNodeId ? 1.8 : 1.1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+
+        phase += 0.03;
+        stageAnimId = requestAnimationFrame(drawField);
+      }
+
+      if (stageAnimId) cancelAnimationFrame(stageAnimId);
+      drawField();
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = (hex || `#63c7d6`).replace(`#`, ``);
+      const r = parseInt(clean.substring(0, 2), 16) || 99;
+      const g = parseInt(clean.substring(2, 4), 16) || 199;
+      const b = parseInt(clean.substring(4, 6), 16) || 214;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // =========================================================================
+    // Global Events (Ctrl+V Image Paste in Creator Mode, Escape key)
+    // =========================================================================
+    document.addEventListener(`paste`, function(evt) {
+      const modal = document.getElementById('creator-modal');
+      if (!modal || !modal.classList.contains(`is-open`)) return;
+      const items = evt.clipboardData && evt.clipboardData.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf(`image`) === 0) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            processImageToCircularIcon(blob);
+            break;
+          }
+        }
+      }
+    });
+
+    document.addEventListener(`keydown`, function(evt) {
+      if (evt.key === `Escape`) {
+        const modal = document.getElementById('creator-modal');
+        if (modal && modal.classList.contains(`is-open`)) {
+          closeCreatorModal();
+        }
+      }
+    });
+
+    // =========================================================================
+    // Boot Sequence
+    // =========================================================================
+    async function bootAetherSpace() {
+      initDefaultStageNodes();
+      await loadPersistedState();
+
+      const stageSel = document.getElementById('stage-switcher-select');
+      if (stageSel) stageSel.value = appState.activeStageId;
+      const masterSlider = document.getElementById('master-vol-slider');
+      const masterLbl = document.getElementById('master-vol-label');
+      if (masterSlider) masterSlider.value = appState.masterVolume;
+      if (masterLbl) masterLbl.textContent = `${appState.masterVolume}%`;
+
+      setSpatialMode(appState.spatialMode);
+      renderThemeCards();
+      renderStageBackdrop();
+      renderStageNodes();
+      startHero3DCanvas();
+      startStageFieldCanvas();
+
+      if (window.lucide) window.lucide.createIcons();
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === 'function') {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    window.addEventListener(`resize`, function() {
+      renderStageNodes();
+    });
+
+    bootAetherSpace();
+  </script>
+</body>
+</html>
